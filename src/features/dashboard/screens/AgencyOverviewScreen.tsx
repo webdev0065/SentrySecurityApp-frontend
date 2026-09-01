@@ -5,7 +5,7 @@ import { colors } from '../../../styles/colors';
 
 const AgencyOverviewScreen: React.FC = () => (
   <View style={styles.container}>
-    <Text style={styles.title}>Dashboard</Text>
+    <Text style={styles.title}>Welcome</Text>
   </View>
 );
 
