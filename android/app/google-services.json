@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "361566275335",
+    "project_id": "securityapp-df4b5",
+    "storage_bucket": "securityapp-df4b5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:361566275335:android:1e639d783d5df9d20827a2",
+        "android_client_info": {
+          "package_name": "com.sentrysecurityapp.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCS5k52_G-7W8wCTJvFpMUxTxAZ3GssXgw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

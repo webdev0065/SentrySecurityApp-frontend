@@ -1,0 +1,43 @@
+import { apiRequest } from './apiClient';
+import { session } from './session';
+import { registrationDraft, type RegistrationDraft } from './registrationDraft';
+
+type AuthResponse = { message: string; token: string };
+
+const formatPhoneNumber = (mobile: string) => `+91${mobile.replace(/\D/g, '').slice(-10)}`;
+
+export const authService = {
+  async login(identifier: string, password: string) {
+    const response = await apiRequest<AuthResponse>('/login', { method: 'POST', body: { identifier, password } });
+    await session.setToken(response.token);
+    return response;
+  },
+  startRegistration: async (payload: Omit<RegistrationDraft, 'profile'>) => {
+    registrationDraft.setAccount(payload);
+  },
+  // Temporary development bypass: no SMS is sent until Firebase OTP is enabled.
+  async sendMobileOtp(_mobile: string) {
+    return undefined;
+  },
+  async verifyMobileOtp(mobile: string, code: string) {
+    const draft = registrationDraft.get();
+    if (!draft?.profile) {
+      throw new Error('Your registration details are missing. Please start again.');
+    }
+    const response = await apiRequest<AuthResponse>('/complete-registration', {
+      method: 'POST',
+      body: { ...draft, otp: code, mobile_number: formatPhoneNumber(mobile) },
+    });
+    await session.setToken(response.token);
+    registrationDraft.clear();
+    return response;
+  },
+  async requestPasswordReset(identifier: string) {
+    await session.setPendingIdentifier(identifier);
+    return apiRequest('/forgot-password', { method: 'POST', body: { identifier } });
+  },
+  verifyForgotPasswordOtp: (identifier: string, otp: string) =>
+    apiRequest('/verify-forgot-password-otp', { method: 'POST', body: { identifier, otp } }),
+  resetPassword: (identifier: string, new_password: string, confirm_password: string) =>
+    apiRequest('/reset-password', { method: 'POST', body: { identifier, new_password, confirm_password } }),
+};
