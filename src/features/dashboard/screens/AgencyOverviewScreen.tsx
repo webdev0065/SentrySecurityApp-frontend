@@ -9,7 +9,9 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../../styles/colors';
 import {
   scaleFont as f,
@@ -19,12 +21,16 @@ import {
 import AgencyBottomNavigation from '../components/AgencyBottomNavigation';
 import AgencyProfileMenu from '../components/AgencyProfileMenu';
 import AgencyTopNavigation from '../components/AgencyTopNavigation';
+import type { MainStackParamList } from '../../../navigation/types';
+import ScalePressable from '../../../components/common/ScalePressable';
+import GuardsOnDutyModal from '../components/GuardsOnDutyModal';
+import ActiveSitesModal from '../components/ActiveSitesModal';
 
 const summary = [
-  ['users', '4', 'Guards on duty', '#0EAE5A', '#E2F5E9'],
-  ['grid', '3', 'Active sites', '#F5A400', '#FFF1D9'],
-  ['alert-circle', '1', 'Open incidents', '#EF4444', '#FDE4E4'],
-  ['user', '2', 'Unassigned guards', '#2563EB', '#E8EEFF'],
+  ['users', '4', 'guardsOnDuty', '#0EAE5A', '#E2F5E9'],
+  ['grid', '3', 'activeSites', '#F5A400', '#FFF1D9'],
+  ['alert-circle', '1', 'openIncidents', '#EF4444', '#FDE4E4'],
+  ['user', '2', 'unassignedGuards', '#2563EB', '#E8EEFF'],
 ] as const;
 const sites = [
   'Cyber Hub — Gate 2',
@@ -44,99 +50,168 @@ const Icon = ({
 }) => <Feather name={name} size={f(size)} color={color} />;
 const Chevron = () => <Icon name="chevron-right" color="#696969" />;
 
-const AgencyOverviewScreen: React.FC = () => {
+type Props = NativeStackScreenProps<MainStackParamList, 'AgencyOverview'>;
+
+const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [guardsOnDutyOpen, setGuardsOnDutyOpen] = useState(false);
+  const [activeSitesOpen, setActiveSitesOpen] = useState(false);
   return (
-  // edges: top keeps the header clear of the notch/status bar; bottom keeps
-  // the tab bar clear of the home indicator on notched devices.
-  <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+    // edges: top keeps the header clear of the notch/status bar; bottom keeps
+    // the tab bar clear of the home indicator on notched devices.
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" />
 
-    <AgencyTopNavigation profileMenuOpen={profileMenuOpen} onProfilePress={() => setProfileMenuOpen(open => !open)} />
+      <AgencyTopNavigation
+        profileMenuOpen={profileMenuOpen}
+        onProfilePress={() => setProfileMenuOpen(open => !open)}
+      />
 
-    <ScrollView
-      style={s.scroll}
-      contentContainerStyle={s.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={s.titleRow}>
-        <Text style={s.section}>QUICK SUMMARY</Text>
-        <View style={s.date}>
-          <Text style={s.dateText}>Today, 24 May 2026</Text>
-          <Icon name="calendar" color="#666" size={24} />
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={s.titleRow}>
+          <Text style={s.section}>{t('dashboard.quickSummary')}</Text>
+          <View style={s.date}>
+            <Text style={s.dateText}>{t('dashboard.today')}, 3 Sep 2026</Text>
+            <Icon name="calendar" color="#666" size={24} />
+          </View>
         </View>
-      </View>
 
-      <View style={s.grid}>
-        {summary.map(([icon, value, label, color, tint]) => (
-          <TouchableOpacity key={label} style={s.card}>
-            <View style={[s.cardIcon, { backgroundColor: tint }]}>
-              <Icon name={icon} color={color} size={27} />
-            </View>
-            <View style={s.cardCopy}>
-              <Text style={[s.number, { color }]}>{value}</Text>
-              <Text style={s.cardLabel}>{label}</Text>
-              <Text style={s.details}>View details ›</Text>
-            </View>
+        <View style={s.grid}>
+          {summary.map(([icon, value, label, color, tint]) => (
+            <TouchableOpacity
+              key={label}
+              style={s.card}
+              onPress={
+                label === 'guardsOnDuty'
+                  ? () => setGuardsOnDutyOpen(true)
+                  : label === 'activeSites'
+                  ? () => setActiveSitesOpen(true)
+                  : label === 'openIncidents'
+                  ? () => navigation.navigate('AgencyIncidents')
+                  : undefined
+              }
+              activeOpacity={
+                label === 'guardsOnDuty' ||
+                label === 'activeSites' ||
+                label === 'openIncidents'
+                  ? 0.8
+                  : 1
+              }
+            >
+              <View style={[s.cardIcon, { backgroundColor: tint }]}>
+                <Icon name={icon} color={color} size={27} />
+              </View>
+              <View style={s.cardCopy}>
+                <Text style={[s.number, { color }]}>{value}</Text>
+                <Text style={s.cardLabel}>{t(`dashboard.${label}`)}</Text>
+                <Text style={s.details}>{t('dashboard.viewDetails')} ›</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={s.insights}>
+          <Insight
+            icon="credit-card"
+            title={t('dashboard.payrollSummary')}
+            value="₹1,52,300"
+            caption="April 2026 • 0 pending"
+            color="#33C977"
+            tint="#E2F5E9"
+          />
+          <Insight
+            icon="file-text"
+            title={t('dashboard.invoices')}
+            value="₹45,000"
+            caption="1 pending • 2 invoices"
+            color="#5A8DFF"
+            tint="#EEF3FF"
+          />
+          <Insight
+            icon="star"
+            title={t('dashboard.clientReviews')}
+            value="★★★★★ 5.0 (1)"
+            caption="Sunrise Mall"
+            color="#A57AFF"
+            tint="#F2EDFF"
+            stars
+          />
+        </View>
+
+        <Text style={s.section}>{t('dashboard.quickActions')}</Text>
+        <View style={s.actions}>
+          <Action
+            icon="user-plus"
+            text={t('dashboard.addGuard')}
+            color="#0EAA55"
+            onPress={() => navigation.navigate('AgencyGuards')}
+          />
+          <Action
+            icon="grid"
+            text={t('dashboard.addSite')}
+            color="#F39A00"
+            onPress={() =>
+              navigation.navigate('AgencySites', { openAddSite: true })
+            }
+          />
+          <Action
+            icon="alert-triangle"
+            text={t('dashboard.incident')}
+            color="#F22121"
+            onPress={() =>
+              navigation.navigate('AgencyIncidents', { openFileIncident: true })
+            }
+          />
+        </View>
+
+        <View style={s.liveHeader}>
+          <Text style={s.section}>{t('dashboard.liveStatus')}</Text>
+          <TouchableOpacity style={s.viewAll}>
+            <Text style={s.viewAllText}>{t('dashboard.viewAll')}</Text>
+            <Icon name="chevron-right" color="#2563EB" size={20} />
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
 
-      <View style={s.insights}>
-        <Insight
-          icon="credit-card"
-          title="PAYROLL SUMMARY"
-          value="₹1,52,300"
-          caption="April 2026 • 0 pending"
-          color="#33C977"
-          tint="#E2F5E9"
+        <View style={s.list}>
+          {sites.map(site => (
+            <Live key={site} title={site} assigned />
+          ))}
+          <Live title="Unassigned" assigned={false} />
+        </View>
+      </ScrollView>
+
+      <AgencyBottomNavigation
+        activeTab="overview"
+        onTabPress={tab => {
+          if (tab === 'guards') navigation.navigate('AgencyGuards');
+          if (tab === 'incidents') navigation.navigate('AgencyIncidents');
+          if (tab === 'sites') navigation.navigate('AgencySites');
+          if (tab === 'profile') navigation.navigate('AgencyProfile');
+        }}
+      />
+      {profileMenuOpen ? (
+        <Pressable
+          style={s.menuBackdrop}
+          onPress={() => setProfileMenuOpen(false)}
         />
-        <Insight
-          icon="file-text"
-          title="INVOICES"
-          value="₹45,000"
-          caption="1 pending • 2 invoices"
-          color="#5A8DFF"
-          tint="#EEF3FF"
-        />
-        <Insight
-          icon="star"
-          title="CLIENT REVIEWS"
-          value="★★★★★ 5.0 (1)"
-          caption="Sunrise Mall"
-          color="#A57AFF"
-          tint="#F2EDFF"
-          stars
-        />
-      </View>
-
-      <Text style={s.section}>QUICK ACTIONS</Text>
-      <View style={s.actions}>
-        <Action icon="user-plus" text="+ Guard" color="#0EAA55" />
-        <Action icon="grid" text="+ Site" color="#F39A00" />
-        <Action icon="alert-triangle" text="Incident" color="#F22121" />
-      </View>
-
-      <View style={s.liveHeader}>
-        <Text style={s.section}>LIVE STATUS</Text>
-        <TouchableOpacity style={s.viewAll}>
-          <Text style={s.viewAllText}>View All</Text>
-          <Icon name="chevron-right" color="#2563EB" size={20} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={s.list}>
-        {sites.map(site => (
-          <Live key={site} title={site} assigned />
-        ))}
-        <Live title="Unassigned" assigned={false} />
-      </View>
-    </ScrollView>
-
-    <AgencyBottomNavigation activeTab="overview" />
-    {profileMenuOpen ? <Pressable style={s.menuBackdrop} onPress={() => setProfileMenuOpen(false)} /> : null}
-    {profileMenuOpen ? <AgencyProfileMenu onLogout={() => setProfileMenuOpen(false)} /> : null}
-  </SafeAreaView>
+      ) : null}
+      {profileMenuOpen ? (
+        <AgencyProfileMenu onLogout={() => setProfileMenuOpen(false)} />
+      ) : null}
+      <GuardsOnDutyModal
+        visible={guardsOnDutyOpen}
+        onClose={() => setGuardsOnDutyOpen(false)}
+      />
+      <ActiveSitesModal
+        visible={activeSitesOpen}
+        onClose={() => setActiveSitesOpen(false)}
+      />
+    </SafeAreaView>
   );
 };
 
@@ -173,41 +248,61 @@ const Action = ({
   icon,
   text,
   color,
+  onPress,
 }: {
   icon: React.ComponentProps<typeof Feather>['name'];
   text: string;
   color: string;
+  onPress?: () => void;
 }) => (
-  <TouchableOpacity style={[s.action, { borderColor: color }]}>
+  <ScalePressable
+    style={[s.action, { borderColor: color }]}
+    onPress={onPress}
+    accessibilityRole="button"
+  >
     <Icon name={icon} color={color} size={20} />
     <Text style={[s.actionText, { color }]}>{text}</Text>
-  </TouchableOpacity>
+  </ScalePressable>
 );
 const Live = ({ title, assigned }: { title: string; assigned: boolean }) => (
-  <TouchableOpacity style={s.live}>
-    <View
-      style={[
-        s.liveIcon,
-        { backgroundColor: assigned ? '#E2F5E9' : '#FDE4E4' },
-      ]}
-    >
-      <Icon
-        name={assigned ? 'grid' : 'user'}
-        color={assigned ? '#16A34A' : '#F26E6E'}
-        size={22}
-      />
-    </View>
-    <View style={s.liveCopy}>
-      <Text style={s.liveTitle}>{title}</Text>
-      <Text
-        style={[s.liveCaption, { color: assigned ? '#16A34A' : '#EF4444' }]}
-      >
-        {assigned ? '1/1 on duty' : '0/2 on duty'}
-      </Text>
-    </View>
-    <Chevron />
-  </TouchableOpacity>
+  <LiveContent title={title} assigned={assigned} />
 );
+const LiveContent = ({
+  title,
+  assigned,
+}: {
+  title: string;
+  assigned: boolean;
+}) => {
+  const { t } = useTranslation();
+  return (
+    <TouchableOpacity style={s.live}>
+      <View
+        style={[
+          s.liveIcon,
+          { backgroundColor: assigned ? '#E2F5E9' : '#FDE4E4' },
+        ]}
+      >
+        <Icon
+          name={assigned ? 'grid' : 'user'}
+          color={assigned ? '#16A34A' : '#F26E6E'}
+          size={22}
+        />
+      </View>
+      <View style={s.liveCopy}>
+        <Text style={s.liveTitle}>{title}</Text>
+        <Text
+          style={[s.liveCaption, { color: assigned ? '#16A34A' : '#EF4444' }]}
+        >
+          {assigned
+            ? `1/1 ${t('dashboard.onDuty')}`
+            : `0/2 ${t('dashboard.onDuty')}`}
+        </Text>
+      </View>
+      <Chevron />
+    </TouchableOpacity>
+  );
+};
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white, position: 'relative' },
@@ -224,7 +319,7 @@ const s = StyleSheet.create({
     zIndex: 30,
     elevation: 0,
   },
-  logo: { width: w(180), height: h(180)},
+  logo: { width: w(180), height: h(180) },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: w(10) },
   profileTrigger: { flexDirection: 'row', alignItems: 'center', gap: w(10) },
   bellWrapper: { position: 'relative' },
@@ -316,13 +411,23 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   insightCopy: { flex: 1, marginLeft: w(13) },
-  insightTitle: { fontSize: f(12), color: '#6C6C6C', fontWeight: '500' },
-  insightValue: { fontSize: f(17), color: colors.primary, fontWeight: '700' },
-  stars: { color: '#FFB800', fontSize: f(16) },
-  caption: { fontSize: f(10), color: '#686868' },
+  insightTitle: {
+    fontSize: f(12),
+    lineHeight: f(15),
+    color: '#6C6C6C',
+    fontWeight: '500',
+  },
+  insightValue: {
+    fontSize: f(17),
+    lineHeight: f(21),
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  stars: { color: colors.primary },
+  caption: { fontSize: f(10), lineHeight: f(13), color: '#686868' },
   actions: {
     flexDirection: 'row',
-    gap: w(8),
+    gap: w(10),
     marginTop: h(12),
     marginBottom: h(27),
   },
@@ -331,6 +436,7 @@ const s = StyleSheet.create({
     borderRadius: w(7),
     borderWidth: 1,
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

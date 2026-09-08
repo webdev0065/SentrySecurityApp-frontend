@@ -61,10 +61,7 @@ const Onboarding01Screen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       {/* Skip — left 22, top 795 */}
-      <TouchableOpacity
-        style={styles.skipWrapper}
-        onPress={skipOnboarding}
-      >
+      <TouchableOpacity style={styles.skipWrapper} onPress={skipOnboarding}>
         <Text style={styles.skipText}>{t('common.skip', 'Skip')}</Text>
       </TouchableOpacity>
 

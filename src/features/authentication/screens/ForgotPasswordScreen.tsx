@@ -27,7 +27,10 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSendOtp = async () => {
     if (!isValidIdentifier(identifier)) {
-      Alert.alert('Invalid details', 'Enter a valid email address or mobile number.');
+      Alert.alert(
+        'Invalid details',
+        'Enter a valid email address or mobile number.',
+      );
       return;
     }
     try {
@@ -35,7 +38,10 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       await authService.requestPasswordReset(identifier.trim());
       navigation.navigate('VerifyOTP');
     } catch (error) {
-      Alert.alert('Could not send OTP', error instanceof Error ? error.message : 'Please try again.');
+      Alert.alert(
+        'Could not send OTP',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -86,7 +92,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
         onPress={handleSendOtp}
         disabled={isSubmitting}
       >
-        <Text style={styles.sendOtpText}>{isSubmitting ? 'Sending...' : 'Send OTP'}</Text>
+        <Text style={styles.sendOtpText}>
+          {isSubmitting ? 'Sending...' : 'Send OTP'}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.rememberRow}>
@@ -178,7 +186,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sendOtpText: { fontSize: scaleFont(24), fontWeight: '700', color: colors.white },
+  sendOtpText: {
+    fontSize: scaleFont(24),
+    fontWeight: '700',
+    color: colors.white,
+  },
   rememberRow: {
     position: 'absolute',
     left: scaleWidth(23),
@@ -187,7 +199,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  rememberText: { fontSize: scaleFont(20), fontWeight: '700', color: colors.primary },
+  rememberText: {
+    fontSize: scaleFont(20),
+    fontWeight: '700',
+    color: colors.primary,
+  },
   loginLink: { fontSize: scaleFont(20), fontWeight: '700', color: '#2563EB' },
 });
 

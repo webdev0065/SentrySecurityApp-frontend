@@ -45,7 +45,10 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (!isValidIndianMobile(mobile)) {
-      Alert.alert('Invalid mobile number', 'Enter a valid 10-digit Indian mobile number.');
+      Alert.alert(
+        'Invalid mobile number',
+        'Enter a valid 10-digit Indian mobile number.',
+      );
       return;
     }
     if (!isValidEmail(email)) {
@@ -58,18 +61,29 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Passwords do not match', 'Confirm password must match the password.');
+      Alert.alert(
+        'Passwords do not match',
+        'Confirm password must match the password.',
+      );
       return;
     }
     try {
       setIsSubmitting(true);
       await authService.startRegistration({
-        full_name: name.trim(), mobile_number: mobile, email: email.trim().toLowerCase(),
-        password, account_type: accountType,
+        full_name: name.trim(),
+        mobile_number: mobile,
+        email: email.trim().toLowerCase(),
+        password,
+        account_type: accountType,
       });
-      navigation.navigate(accountType === 'agency' ? 'AgencyDetails' : 'ClientDetails');
+      navigation.navigate(
+        accountType === 'agency' ? 'AgencyDetails' : 'ClientDetails',
+      );
     } catch (error) {
-      Alert.alert('Could not create account', error instanceof Error ? error.message : 'Please try again.');
+      Alert.alert(
+        'Could not create account',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -182,7 +196,9 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
           onPress={handleContinue}
           disabled={isSubmitting}
         >
-          <Text style={styles.continueText}>{isSubmitting ? 'Creating account...' : 'Continue'}</Text>
+          <Text style={styles.continueText}>
+            {isSubmitting ? 'Creating account...' : 'Continue'}
+          </Text>
         </TouchableOpacity>
 
         <View style={styles.loginRow}>
@@ -296,11 +312,16 @@ const AccountTypeCard: React.FC<AccountTypeCardProps> = ({
       size={scaleFont(50)}
       color={active ? colors.white : colors.primary}
     />
-    <Text style={[styles.accountTypeTitle, active && styles.accountTypeTextActive]}>
+    <Text
+      style={[styles.accountTypeTitle, active && styles.accountTypeTextActive]}
+    >
       {title}
     </Text>
     <Text
-      style={[styles.accountTypeDescription, active && styles.accountTypeTextActive]}
+      style={[
+        styles.accountTypeDescription,
+        active && styles.accountTypeTextActive,
+      ]}
     >
       {description}
     </Text>
@@ -360,14 +381,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  inactiveTab: { width: scaleWidth(179), alignItems: 'center', justifyContent: 'center' },
-  activeTabText: { fontSize: scaleFont(20), fontWeight: '600', color: colors.white },
-  inactiveTabText: { fontSize: scaleFont(20), fontWeight: '600', color: colors.primary },
-  fullNameLabel: { position: 'absolute', left: scaleWidth(23), top: scaleHeight(342), fontSize: scaleFont(22), fontWeight: '500', color: colors.primary },
-  mobileLabel: { position: 'absolute', left: scaleWidth(23), top: scaleHeight(449), fontSize: scaleFont(22), fontWeight: '500', color: colors.primary },
-  emailLabel: { position: 'absolute', left: scaleWidth(23), top: scaleHeight(551), fontSize: scaleFont(22), fontWeight: '500', color: colors.primary },
-  passwordLabel: { position: 'absolute', left: scaleWidth(23), top: scaleHeight(648), fontSize: scaleFont(22), fontWeight: '500', color: colors.primary },
-  confirmPasswordLabel: { position: 'absolute', left: scaleWidth(23), top: scaleHeight(747), fontSize: scaleFont(22), fontWeight: '500', color: colors.primary },
+  inactiveTab: {
+    width: scaleWidth(179),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeTabText: {
+    fontSize: scaleFont(20),
+    fontWeight: '600',
+    color: colors.white,
+  },
+  inactiveTabText: {
+    fontSize: scaleFont(20),
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  fullNameLabel: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(342),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  mobileLabel: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(449),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  emailLabel: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(551),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  passwordLabel: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(648),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  confirmPasswordLabel: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(747),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
+  },
   inputWrapper: {
     position: 'absolute',
     left: scaleWidth(19),
@@ -385,19 +453,87 @@ const styles = StyleSheet.create({
   emailInput: { top: scaleHeight(577) },
   passwordInput: { top: scaleHeight(678) },
   confirmPasswordInput: { top: scaleHeight(778) },
-  input: { flex: 1, height: '100%', paddingHorizontal: scaleWidth(8), paddingVertical: 0, fontSize: scaleFont(16), color: colors.primary },
-  eyeButton: { height: '100%', paddingHorizontal: scaleWidth(16), justifyContent: 'center' },
-  accountTypeLabel: { position: 'absolute', left: scaleWidth(19), top: scaleHeight(850), fontSize: scaleFont(20), fontWeight: '700', color: colors.primary },
-  accountTypeRow: { position: 'absolute', left: scaleWidth(19), top: scaleHeight(889), flexDirection: 'row', gap: scaleWidth(13) },
-  accountTypeCard: { width: scaleWidth(170), height: scaleHeight(148), borderWidth: 1, borderColor: colors.primary, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  input: {
+    flex: 1,
+    height: '100%',
+    paddingHorizontal: scaleWidth(8),
+    paddingVertical: 0,
+    fontSize: scaleFont(16),
+    color: colors.primary,
+  },
+  eyeButton: {
+    height: '100%',
+    paddingHorizontal: scaleWidth(16),
+    justifyContent: 'center',
+  },
+  accountTypeLabel: {
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(850),
+    fontSize: scaleFont(20),
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  accountTypeRow: {
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(889),
+    flexDirection: 'row',
+    gap: scaleWidth(13),
+  },
+  accountTypeCard: {
+    width: scaleWidth(170),
+    height: scaleHeight(148),
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   accountTypeCardActive: { backgroundColor: colors.primary },
-  accountTypeTitle: { marginTop: scaleHeight(5), fontSize: scaleFont(24), fontWeight: '600', color: colors.primary },
-  accountTypeDescription: { marginTop: scaleHeight(3), textAlign: 'center', fontSize: scaleFont(16), lineHeight: scaleFont(18), color: colors.primary },
+  accountTypeTitle: {
+    marginTop: scaleHeight(5),
+    fontSize: scaleFont(24),
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  accountTypeDescription: {
+    marginTop: scaleHeight(3),
+    textAlign: 'center',
+    fontSize: scaleFont(16),
+    lineHeight: scaleFont(18),
+    color: colors.primary,
+  },
   accountTypeTextActive: { color: colors.white },
-  continueButton: { position: 'absolute', left: scaleWidth(19), top: scaleHeight(1056), width: scaleWidth(363), height: scaleHeight(50), borderRadius: 8, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
-  continueText: { fontSize: scaleFont(24), fontWeight: '700', color: colors.white },
-  loginRow: { position: 'absolute', left: scaleWidth(23), top: scaleHeight(1127), width: scaleWidth(355), flexDirection: 'row', justifyContent: 'center' },
-  loginPrompt: { fontSize: scaleFont(20), fontWeight: '700', color: colors.primary },
+  continueButton: {
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(1056),
+    width: scaleWidth(363),
+    height: scaleHeight(50),
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  continueText: {
+    fontSize: scaleFont(24),
+    fontWeight: '700',
+    color: colors.white,
+  },
+  loginRow: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(1127),
+    width: scaleWidth(355),
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  loginPrompt: {
+    fontSize: scaleFont(20),
+    fontWeight: '700',
+    color: colors.primary,
+  },
   loginLink: { fontSize: scaleFont(20), fontWeight: '700', color: '#2563EB' },
 });
 

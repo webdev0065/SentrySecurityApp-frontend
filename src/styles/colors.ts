@@ -5,7 +5,7 @@ export const colors = {
   progressTrack: '#E5E5E5',
   textGray: '#6B7280',
   border: '#D1D5DB',
-  gold: '#FFB800', 
+  gold: '#FFB800',
   dotInactive: '#F2F2F2',
 
   light: {

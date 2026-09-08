@@ -20,10 +20,15 @@ export type AuthStackParamList = {
 
 export type MainStackParamList = {
   AgencyOverview: undefined;
+  AgencyIncidents: { openFileIncident?: boolean } | undefined;
+  AgencySites: { openAddSite?: boolean } | undefined;
+  AgencyProfile: undefined;
+  AgencyGuards: undefined;
 };
 
 // NEW — root navigator that nests the three feature navigators
 export type RootStackParamList = {
+  SuperAdminFlow: undefined;
   OnboardingFlow: undefined;
   AuthFlow: undefined;
   MainFlow: undefined;

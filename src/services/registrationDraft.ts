@@ -14,7 +14,10 @@ export const registrationDraft = {
     draft = { ...account };
   },
   setProfile: (profile: Record<string, string>) => {
-    if (!draft) throw new Error('Your registration session has expired. Please start again.');
+    if (!draft)
+      throw new Error(
+        'Your registration session has expired. Please start again.',
+      );
     draft = { ...draft, profile };
   },
   get: () => draft,

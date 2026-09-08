@@ -65,7 +65,8 @@ const AccountCreatedScreen: React.FC<Props> = ({ navigation }) => (
 
     <Text style={styles.heading}>Account Created{`\n`}Successfully!</Text>
     <Text style={styles.subtitle}>
-      Your account has been created.{`\n`}You can now login and explore{`\n`}the app.
+      Your account has been created.{`\n`}You can now login and explore{`\n`}the
+      app.
     </Text>
 
     <TouchableOpacity
@@ -80,28 +81,66 @@ const AccountCreatedScreen: React.FC<Props> = ({ navigation }) => (
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   confettiDot: {
-    position: 'absolute', width: scaleWidth(8), height: scaleHeight(8), borderRadius: 100,
+    position: 'absolute',
+    width: scaleWidth(8),
+    height: scaleHeight(8),
+    borderRadius: 100,
   },
   successShield: {
-    position: 'absolute', left: scaleWidth(100), top: scaleHeight(218), width: scaleWidth(202), height: scaleHeight(202),
+    position: 'absolute',
+    left: scaleWidth(100),
+    top: scaleHeight(218),
+    width: scaleWidth(202),
+    height: scaleHeight(202),
   },
   successBadge: {
-    position: 'absolute', left: scaleWidth(239), top: scaleHeight(222), width: scaleWidth(59), height: scaleHeight(59),
-    borderRadius: 100, alignItems: 'center', justifyContent: 'center', backgroundColor: '#35C759',
+    position: 'absolute',
+    left: scaleWidth(239),
+    top: scaleHeight(222),
+    width: scaleWidth(59),
+    height: scaleHeight(59),
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#35C759',
   },
   heading: {
-    position: 'absolute', left: scaleWidth(27), top: scaleHeight(465), width: scaleWidth(348), textAlign: 'center',
-    fontSize: scaleFont(32), lineHeight: scaleFont(39), fontWeight: '800', color: colors.primary,
+    position: 'absolute',
+    left: scaleWidth(27),
+    top: scaleHeight(465),
+    width: scaleWidth(348),
+    textAlign: 'center',
+    fontSize: scaleFont(32),
+    lineHeight: scaleFont(39),
+    fontWeight: '800',
+    color: colors.primary,
   },
   subtitle: {
-    position: 'absolute', left: scaleWidth(23), top: scaleHeight(551), width: scaleWidth(355), textAlign: 'center',
-    fontSize: scaleFont(20), lineHeight: scaleFont(29), color: colors.primary,
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(551),
+    width: scaleWidth(355),
+    textAlign: 'center',
+    fontSize: scaleFont(20),
+    lineHeight: scaleFont(29),
+    color: colors.primary,
   },
   loginButton: {
-    position: 'absolute', left: scaleWidth(19), top: scaleHeight(782), width: scaleWidth(363), height: scaleHeight(50),
-    borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary,
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(782),
+    width: scaleWidth(363),
+    height: scaleHeight(50),
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
   },
-  loginButtonText: { fontSize: scaleFont(24), fontWeight: '700', color: colors.white },
+  loginButtonText: {
+    fontSize: scaleFont(24),
+    fontWeight: '700',
+    color: colors.white,
+  },
 });
 
 export default AccountCreatedScreen;

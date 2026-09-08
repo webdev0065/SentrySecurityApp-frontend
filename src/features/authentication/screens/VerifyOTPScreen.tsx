@@ -28,9 +28,7 @@ const VerifyOTPScreen: React.FC<Props> = ({ navigation }) => {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [identifier, setIdentifier] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const inputs = useRef<Array<React.ComponentRef<typeof TextInput> | null>>(
-    [],
-  );
+  const inputs = useRef<Array<React.ComponentRef<typeof TextInput> | null>>([]);
 
   useEffect(() => {
     session.getPendingIdentifier().then(value => setIdentifier(value || ''));
@@ -80,17 +78,24 @@ const VerifyOTPScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleVerifyOtp = async () => {
     if (!isCompleteOtp(otp)) {
-      Alert.alert('Invalid OTP', 'Enter the complete 6-digit verification code.');
+      Alert.alert(
+        'Invalid OTP',
+        'Enter the complete 6-digit verification code.',
+      );
       return;
     }
     try {
       setIsSubmitting(true);
       const identifier = await session.getPendingIdentifier();
-      if (!identifier) throw new Error('Your reset session has expired. Request a new OTP.');
+      if (!identifier)
+        throw new Error('Your reset session has expired. Request a new OTP.');
       await authService.verifyForgotPasswordOtp(identifier, otp.join(''));
       navigation.navigate('CreateNewPassword');
     } catch (error) {
-      Alert.alert('Verification failed', error instanceof Error ? error.message : 'Please try again.');
+      Alert.alert(
+        'Verification failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -118,7 +123,9 @@ const VerifyOTPScreen: React.FC<Props> = ({ navigation }) => {
 
       <Text style={styles.heading}>Verify OTP</Text>
       <Text style={styles.subtitle}>Enter the 6-digit code sent to</Text>
-      <Text style={styles.phoneNumber}>{identifier || 'your email or mobile number'}</Text>
+      <Text style={styles.phoneNumber}>
+        {identifier || 'your email or mobile number'}
+      </Text>
 
       <View style={styles.otpRow}>
         {otp.map((digit, index) => (
@@ -155,7 +162,9 @@ const VerifyOTPScreen: React.FC<Props> = ({ navigation }) => {
         onPress={handleVerifyOtp}
         disabled={isSubmitting}
       >
-        <Text style={styles.verifyButtonText}>{isSubmitting ? 'Verifying...' : 'Verify & Continue'}</Text>
+        <Text style={styles.verifyButtonText}>
+          {isSubmitting ? 'Verifying...' : 'Verify & Continue'}
+        </Text>
       </TouchableOpacity>
     </View>
   );

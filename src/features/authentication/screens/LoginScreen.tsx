@@ -15,7 +15,10 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
-import type { AuthStackParamList, RootStackParamList } from '../../../navigation/types';
+import type {
+  AuthStackParamList,
+  RootStackParamList,
+} from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { isValidIdentifier, passwordError } from '../../../utils/validation';
@@ -32,7 +35,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!isValidIdentifier(identifier)) {
-      Alert.alert('Invalid details', 'Enter a valid email address or mobile number.');
+      Alert.alert(
+        'Invalid details',
+        'Enter a valid email address or mobile number.',
+      );
       return;
     }
 
@@ -44,9 +50,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setIsSubmitting(true);
       await authService.login(identifier.trim(), password);
-      navigation.getParent<NativeStackNavigationProp<RootStackParamList>>()?.replace('MainFlow');
+      navigation
+        .getParent<NativeStackNavigationProp<RootStackParamList>>()
+        ?.replace('MainFlow');
     } catch (error) {
-      Alert.alert('Login failed', error instanceof Error ? error.message : 'Please try again.');
+      Alert.alert(
+        'Login failed',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -109,7 +120,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.eyeButton}
           onPress={() => setPasswordVisible(current => !current)}
-          accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+          accessibilityLabel={
+            passwordVisible ? 'Hide password' : 'Show password'
+          }
         >
           <Feather
             name={passwordVisible ? 'eye-off' : 'eye'}
@@ -126,8 +139,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.loginButton, isSubmitting && { opacity: 0.65 }]} onPress={handleLogin} disabled={isSubmitting}>
-        <Text style={styles.loginButtonText}>{isSubmitting ? 'Logging in...' : t('auth.login')}</Text>
+      <TouchableOpacity
+        style={[styles.loginButton, isSubmitting && { opacity: 0.65 }]}
+        onPress={handleLogin}
+        disabled={isSubmitting}
+      >
+        <Text style={styles.loginButtonText}>
+          {isSubmitting ? 'Logging in...' : t('auth.login')}
+        </Text>
       </TouchableOpacity>
 
       <Text style={styles.continueText}>Or continue with</Text>
@@ -211,15 +230,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   inactiveTab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  activeTabText: { fontSize: scaleFont(20), fontWeight: '600', color: colors.white },
-  inactiveTabText: { fontSize: scaleFont(20), fontWeight: '600', color: colors.primary },
+  activeTabText: {
+    fontSize: scaleFont(20),
+    fontWeight: '600',
+    color: colors.white,
+  },
+  inactiveTabText: {
+    fontSize: scaleFont(20),
+    fontWeight: '600',
+    color: colors.primary,
+  },
   identifierLabel: {
-    position: 'absolute', left: scaleWidth(23), top: scaleHeight(356),
-    fontSize: scaleFont(22), fontWeight: '500', color: colors.primary,
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(356),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
   },
   passwordLabel: {
-    position: 'absolute', left: scaleWidth(23), top: scaleHeight(461),
-    fontSize: scaleFont(22), fontWeight: '500', color: colors.primary,
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(461),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
   },
   inputWrapper: {
     position: 'absolute',
@@ -243,35 +278,79 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(16),
     color: colors.primary,
   },
-  eyeButton: { paddingHorizontal: scaleWidth(16), height: '100%', justifyContent: 'center' },
-  forgotButton: { position: 'absolute', right: scaleWidth(20), top: scaleHeight(564) },
-  forgotText: { fontSize: scaleFont(20), lineHeight: scaleFont(24), fontWeight: '700', color: '#2563EB' },
-  loginButton: {
-    position: 'absolute', left: scaleWidth(19), top: scaleHeight(612),
-    width: scaleWidth(363), height: scaleHeight(50), borderRadius: 8,
-    backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
+  eyeButton: {
+    paddingHorizontal: scaleWidth(16),
+    height: '100%',
+    justifyContent: 'center',
   },
-  loginButtonText: { fontSize: scaleFont(24), fontWeight: '700', color: colors.white },
+  forgotButton: {
+    position: 'absolute',
+    right: scaleWidth(20),
+    top: scaleHeight(564),
+  },
+  forgotText: {
+    fontSize: scaleFont(20),
+    lineHeight: scaleFont(24),
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  loginButton: {
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(612),
+    width: scaleWidth(363),
+    height: scaleHeight(50),
+    borderRadius: 8,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loginButtonText: {
+    fontSize: scaleFont(24),
+    fontWeight: '700',
+    color: colors.white,
+  },
   continueText: {
-    position: 'absolute', left: scaleWidth(23), top: scaleHeight(683), width: scaleWidth(355),
-    textAlign: 'center', fontSize: scaleFont(20), color: colors.primary,
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(683),
+    width: scaleWidth(355),
+    textAlign: 'center',
+    fontSize: scaleFont(20),
+    color: colors.primary,
   },
   socialRow: {
-    position: 'absolute', left: scaleWidth(19), top: scaleHeight(718),
-    flexDirection: 'row', gap: scaleWidth(9),
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(718),
+    flexDirection: 'row',
+    gap: scaleWidth(9),
   },
   socialButton: {
-    width: scaleWidth(115), height: scaleHeight(75), borderWidth: 1,
-    borderColor: colors.primary, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    width: scaleWidth(115),
+    height: scaleHeight(75),
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
   },
   googleLogo: { width: scaleWidth(100), height: scaleHeight(67) },
   appleLogo: { width: scaleWidth(115), height: scaleHeight(65) },
   signupRow: {
-    position: 'absolute', left: scaleWidth(23), top: scaleHeight(824), width: scaleWidth(355),
-    flexDirection: 'row', justifyContent: 'center',
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(824),
+    width: scaleWidth(355),
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
-  signupPrompt: { fontSize: scaleFont(20), fontWeight: '700', color: colors.primary },
+  signupPrompt: {
+    fontSize: scaleFont(20),
+    fontWeight: '700',
+    color: colors.primary,
+  },
   signupLink: { fontSize: scaleFont(20), fontWeight: '700', color: '#2563EB' },
 });
 

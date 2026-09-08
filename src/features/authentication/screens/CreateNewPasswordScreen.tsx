@@ -36,17 +36,24 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Passwords do not match', 'Confirm password must match the new password.');
+      Alert.alert(
+        'Passwords do not match',
+        'Confirm password must match the new password.',
+      );
       return;
     }
     try {
       setIsSubmitting(true);
       const identifier = await session.getPendingIdentifier();
-      if (!identifier) throw new Error('Your reset session has expired. Request a new OTP.');
+      if (!identifier)
+        throw new Error('Your reset session has expired. Request a new OTP.');
       await authService.resetPassword(identifier, newPassword, confirmPassword);
       navigation.navigate('PasswordUpdated');
     } catch (error) {
-      Alert.alert('Could not reset password', error instanceof Error ? error.message : 'Please try again.');
+      Alert.alert(
+        'Could not reset password',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -90,7 +97,9 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.eyeButton}
           onPress={() => setNewPasswordVisible(current => !current)}
-          accessibilityLabel={newPasswordVisible ? 'Hide password' : 'Show password'}
+          accessibilityLabel={
+            newPasswordVisible ? 'Hide password' : 'Show password'
+          }
         >
           <Feather
             name={newPasswordVisible ? 'eye-off' : 'eye'}
@@ -132,7 +141,9 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
         onPress={handleResetPassword}
         disabled={isSubmitting}
       >
-        <Text style={styles.resetButtonText}>{isSubmitting ? 'Resetting...' : 'Reset Password'}</Text>
+        <Text style={styles.resetButtonText}>
+          {isSubmitting ? 'Resetting...' : 'Reset Password'}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.rememberRow}>
@@ -251,7 +262,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  rememberText: { fontSize: scaleFont(20), fontWeight: '700', color: colors.primary },
+  rememberText: {
+    fontSize: scaleFont(20),
+    fontWeight: '700',
+    color: colors.primary,
+  },
   loginLink: { fontSize: scaleFont(20), fontWeight: '700', color: '#2563EB' },
 });
 
