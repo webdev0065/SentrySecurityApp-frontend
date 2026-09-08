@@ -97,7 +97,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           value={identifier}
           onChangeText={setIdentifier}
           style={styles.input}
-          placeholder="you@example.com or +91 98765 43210"
+          placeholder="abc@example.com or +91 99999 88888"
           placeholderTextColor="#A3A3A3"
           autoCapitalize="none"
           autoCorrect={false}

@@ -146,7 +146,7 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
           icon="mail"
           value={email}
           onChangeText={setEmail}
-          placeholder="you@example.com"
+          placeholder="abc@example.com"
           keyboardType="email-address"
           autoCapitalize="none"
         />
