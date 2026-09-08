@@ -2,16 +2,23 @@ import { apiRequest } from './apiClient';
 import { session } from './session';
 import { registrationDraft, type RegistrationDraft } from './registrationDraft';
 
-type AuthResponse = { message: string; token: string };
+type AuthResponse = {
+  message?: string;
+  token: string;
+  admin?: { id: number; full_name: string; email: string; account_type: string };
+  user?: { id: number; full_name: string; email: string; account_type: string };
+};
 
 const formatPhoneNumber = (mobile: string) =>
   `+91${mobile.replace(/\D/g, '').slice(-10)}`;
 
 export const authService = {
   async login(identifier: string, password: string) {
+    const email = identifier.trim().toLowerCase();
     const response = await apiRequest<AuthResponse>('/login', {
       method: 'POST',
-      body: { identifier, password },
+      // The current unified API authenticates both roles with an email address.
+      body: { email, password },
     });
     await session.setToken(response.token);
     return response;

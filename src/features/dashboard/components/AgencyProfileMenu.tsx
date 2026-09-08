@@ -10,7 +10,11 @@ import { useTranslation } from 'react-i18next';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 
-type Props = { onLogout?: () => void };
+type Props = {
+  onLogout?: () => void;
+  onMyProfile?: () => void;
+  identity?: { name: string; company: string; initials: string };
+};
 
 const Row = ({
   icon,
@@ -58,7 +62,15 @@ const Row = ({
   );
 };
 
-const AgencyProfileMenu: React.FC<Props> = ({ onLogout }) => {
+const AgencyProfileMenu: React.FC<Props> = ({
+  onLogout,
+  onMyProfile,
+  identity = {
+    name: 'Agency Admin',
+    company: 'Sentry Security Services',
+    initials: 'SR',
+  },
+}) => {
   const { i18n, t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const logoutPending = useRef(false);
@@ -69,7 +81,10 @@ const AgencyProfileMenu: React.FC<Props> = ({ onLogout }) => {
     setLoggingOut(true);
     try {
       await session.clearToken();
-      navigation.getParent<NativeStackNavigationProp<RootStackParamList>>()?.reset({
+      const rootNavigation =
+        navigation.getParent<NativeStackNavigationProp<RootStackParamList>>() ??
+        (navigation as unknown as NativeStackNavigationProp<RootStackParamList>);
+      rootNavigation.reset({
         index: 0,
         routes: [{ name: 'AuthFlow' }],
       });
@@ -102,16 +117,16 @@ const AgencyProfileMenu: React.FC<Props> = ({ onLogout }) => {
     <View style={styles.menu}>
       <View style={styles.identity}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>SR</Text>
+          <Text style={styles.avatarText}>{identity.initials}</Text>
           <View style={styles.online} />
         </View>
         <View>
-          <Text style={styles.name}>Agency Admin</Text>
-          <Text style={styles.company}>Sentry Security Services</Text>
+          <Text style={styles.name}>{identity.name}</Text>
+          <Text style={styles.company}>{identity.company}</Text>
         </View>
       </View>
       <View style={styles.divider} />
-      <Row icon="user" label={t('dashboard.myProfile')} />
+      <Row icon="user" label={t('dashboard.myProfile')} onPress={onMyProfile} />
       <Row icon="settings" label={t('dashboard.settings')} />
       <Row
         icon="globe"

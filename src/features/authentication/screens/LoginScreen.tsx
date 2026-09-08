@@ -21,7 +21,7 @@ import type {
 } from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
-import { isValidIdentifier, passwordError } from '../../../utils/validation';
+import { isValidEmail, passwordError } from '../../../utils/validation';
 import { authService } from '../../../services/authService';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
@@ -34,10 +34,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async () => {
-    if (!isValidIdentifier(identifier)) {
+    if (!isValidEmail(identifier.trim())) {
       Alert.alert(
         'Invalid details',
-        'Enter a valid email address or mobile number.',
+        'Enter the email address linked to your account.',
       );
       return;
     }
@@ -49,10 +49,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     }
     try {
       setIsSubmitting(true);
-      await authService.login(identifier.trim(), password);
+      const response = await authService.login(identifier.trim(), password);
+      const accountType = response.admin?.account_type ?? response.user?.account_type;
       navigation
         .getParent<NativeStackNavigationProp<RootStackParamList>>()
-        ?.replace('MainFlow');
+        ?.reset({
+          index: 0,
+          routes: [{ name: accountType === 'superAdmin' ? 'SuperAdminFlow' : 'MainFlow' }],
+        });
     } catch (error) {
       Alert.alert(
         'Login failed',
@@ -90,14 +94,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.identifierLabel}>Email or Mobile Number</Text>
+      <Text style={styles.identifierLabel}>Email Address</Text>
       <View style={[styles.inputWrapper, styles.identifierInput]}>
         <Feather name="user" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput
           value={identifier}
           onChangeText={setIdentifier}
           style={styles.input}
-          placeholder="abc@example.com or +91 99999 88888"
+          placeholder="abc@example.com"
           placeholderTextColor="#A3A3A3"
           autoCapitalize="none"
           autoCorrect={false}
