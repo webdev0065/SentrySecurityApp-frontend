@@ -11,10 +11,14 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
-import type { AuthStackParamList } from '../../../navigation/types';
+import type {
+  AuthStackParamList,
+  RootStackParamList,
+} from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import {
@@ -28,7 +32,8 @@ import { authService } from '../../../services/authService';
 type Props = NativeStackScreenProps<AuthStackParamList, 'CreateAccount'>;
 type AccountType = 'agency' | 'client';
 
-const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
+const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
+  const forceAccountType = route.params?.forceAccountType;
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
@@ -36,8 +41,23 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  const [accountType, setAccountType] = useState<AccountType>('agency');
+  const [accountType, setAccountType] = useState<AccountType>(
+    forceAccountType ?? 'agency',
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const cancel = () => {
+    if (forceAccountType === 'agency') {
+      navigation
+        .getParent<NativeStackNavigationProp<RootStackParamList>>()
+        ?.reset({
+          index: 0,
+          routes: [{ name: 'SuperAdminFlow' }],
+        });
+      return;
+    }
+    navigation.goBack();
+  };
 
   const handleContinue = async () => {
     if (name.trim().length < 2) {
@@ -69,13 +89,16 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
     }
     try {
       setIsSubmitting(true);
-      await authService.startRegistration({
-        full_name: name.trim(),
-        mobile_number: mobile,
-        email: email.trim().toLowerCase(),
-        password,
-        account_type: accountType,
-      });
+      await authService.startRegistration(
+        {
+          full_name: name.trim(),
+          mobile_number: mobile,
+          email: email.trim().toLowerCase(),
+          password,
+          account_type: accountType,
+        },
+        forceAccountType === 'agency' ? 'superAdmin' : 'self',
+      );
       navigation.navigate(
         accountType === 'agency' ? 'AgencyDetails' : 'ClientDetails',
       );
@@ -100,6 +123,20 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
       >
         <LanguageSelector />
 
+        {forceAccountType ? (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={cancel}
+            accessibilityLabel="Back to Super Admin"
+          >
+            <Feather
+              name="arrow-left"
+              size={scaleFont(26)}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        ) : null}
+
         <Image
           source={require('../../../assets/images/login-shield-logo.png')}
           style={styles.logo}
@@ -109,17 +146,16 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.heading}>Create Account</Text>
         <Text style={styles.subtitle}>Fill in your details to get started</Text>
 
-        <View style={styles.authTabs}>
-          <TouchableOpacity
-            style={styles.inactiveTab}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.inactiveTabText}>Log In</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.activeTab}>
-            <Text style={styles.activeTabText}>Create Account</Text>
-          </TouchableOpacity>
-        </View>
+        {!forceAccountType ? (
+          <View style={styles.authTabs}>
+            <TouchableOpacity style={styles.inactiveTab} onPress={cancel}>
+              <Text style={styles.inactiveTabText}>Log In</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.activeTab}>
+              <Text style={styles.activeTabText}>Create Account</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         <Text style={styles.fullNameLabel}>Full Name</Text>
         <FormInput
@@ -173,7 +209,9 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
           placeholder="Enter your password"
         />
 
-        <Text style={styles.accountTypeLabel}>Choose your account type...</Text>
+        <Text style={styles.accountTypeLabel}>
+          {forceAccountType ? 'Account type' : 'Choose your account type...'}
+        </Text>
         <View style={styles.accountTypeRow}>
           <AccountTypeCard
             active={accountType === 'agency'}
@@ -181,14 +219,17 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
             title="Agency"
             description={'Manage guards &\nsecurity services'}
             onPress={() => setAccountType('agency')}
+            fullWidth={forceAccountType === 'agency'}
           />
-          <AccountTypeCard
-            active={accountType === 'client'}
-            icon="user"
-            title="Client"
-            description={'Hire & manage\nsecurity services'}
-            onPress={() => setAccountType('client')}
-          />
+          {!forceAccountType ? (
+            <AccountTypeCard
+              active={accountType === 'client'}
+              icon="user"
+              title="Client"
+              description={'Hire & manage\nsecurity services'}
+              onPress={() => setAccountType('client')}
+            />
+          ) : null}
         </View>
 
         <TouchableOpacity
@@ -201,12 +242,14 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
-        <View style={styles.loginRow}>
-          <Text style={styles.loginPrompt}>Already have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.loginLink}> Log in</Text>
-          </TouchableOpacity>
-        </View>
+        {!forceAccountType ? (
+          <View style={styles.loginRow}>
+            <Text style={styles.loginPrompt}>Already have an account?</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.loginLink}> Log in</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -294,6 +337,7 @@ type AccountTypeCardProps = {
   title: string;
   description: string;
   onPress: () => void;
+  fullWidth?: boolean;
 };
 
 const AccountTypeCard: React.FC<AccountTypeCardProps> = ({
@@ -302,9 +346,14 @@ const AccountTypeCard: React.FC<AccountTypeCardProps> = ({
   title,
   description,
   onPress,
+  fullWidth,
 }) => (
   <TouchableOpacity
-    style={[styles.accountTypeCard, active && styles.accountTypeCardActive]}
+    style={[
+      styles.accountTypeCard,
+      fullWidth && styles.accountTypeCardFull,
+      active && styles.accountTypeCardActive,
+    ]}
     onPress={onPress}
   >
     <Feather
@@ -341,6 +390,16 @@ const styles = StyleSheet.create({
     top: scaleHeight(78),
     width: scaleWidth(101),
     height: scaleHeight(101),
+  },
+  backButton: {
+    position: 'absolute',
+    left: scaleWidth(19),
+    top: scaleHeight(42),
+    width: scaleWidth(44),
+    height: scaleHeight(44),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
   },
   heading: {
     position: 'absolute',
@@ -490,6 +549,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  accountTypeCardFull: { width: scaleWidth(363) },
   accountTypeCardActive: { backgroundColor: colors.primary },
   accountTypeTitle: {
     marginTop: scaleHeight(5),

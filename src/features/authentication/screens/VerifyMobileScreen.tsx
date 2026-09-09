@@ -89,8 +89,11 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
         throw new Error(
           'Your mobile number is missing. Please create the account again.',
         );
-      await authService.verifyMobileOtp(mobile, otp.join(''));
-      navigation.navigate('AccountCreated');
+      const result = await authService.verifyMobileOtp(mobile, otp.join(''));
+      navigation.navigate('AccountCreated', {
+        returnToSuperAdmin: result.returnToSuperAdmin,
+        approvalPending: result.approval_status === 'pending',
+      });
     } catch (error) {
       Alert.alert(
         'Verification failed',

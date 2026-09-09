@@ -6,11 +6,18 @@ import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import ScalePressable from '../../../components/common/ScalePressable';
 
-type Props = { profileMenuOpen: boolean; onProfilePress: () => void };
+type Props = {
+  profileMenuOpen: boolean;
+  onProfilePress: () => void;
+  onNotificationPress?: () => void;
+  unreadNotificationCount?: number;
+};
 
 const AgencyTopNavigation: React.FC<Props> = ({
   profileMenuOpen,
   onProfilePress,
+  onNotificationPress,
+  unreadNotificationCount = 0,
 }) => (
   <View style={styles.header}>
     <Image
@@ -19,12 +26,21 @@ const AgencyTopNavigation: React.FC<Props> = ({
       resizeMode="contain"
     />
     <View style={styles.actions}>
-      <View style={styles.bell}>
+      <ScalePressable
+        style={styles.bell}
+        onPress={onNotificationPress}
+        disabled={!onNotificationPress}
+        accessibilityLabel="Open notifications"
+      >
         <Feather name="bell" size={scaleFont(25)} color={colors.primary} />
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>2</Text>
-        </View>
-      </View>
+        {unreadNotificationCount > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>
+              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+            </Text>
+          </View>
+        ) : null}
+      </ScalePressable>
       <ScalePressable
         style={styles.profileTrigger}
         onPress={onProfilePress}

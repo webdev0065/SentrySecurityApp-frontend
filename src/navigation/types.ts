@@ -1,3 +1,5 @@
+import type { NavigatorScreenParams } from '@react-navigation/native';
+
 export type OnboardingStackParamList = {
   Splash: undefined;
   Onboarding01: undefined;
@@ -7,11 +9,13 @@ export type OnboardingStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  CreateAccount: undefined;
+  CreateAccount: { forceAccountType?: 'agency' } | undefined;
   AgencyDetails: undefined;
   ClientDetails: undefined;
   VerifyMobile: undefined;
-  AccountCreated: undefined;
+  AccountCreated:
+    | { returnToSuperAdmin?: boolean; approvalPending?: boolean }
+    | undefined;
   ForgotPassword: undefined;
   VerifyOTP: undefined;
   CreateNewPassword: undefined;
@@ -30,6 +34,6 @@ export type MainStackParamList = {
 export type RootStackParamList = {
   SuperAdminFlow: undefined;
   OnboardingFlow: undefined;
-  AuthFlow: undefined;
+  AuthFlow: NavigatorScreenParams<AuthStackParamList> | undefined;
   MainFlow: undefined;
 };

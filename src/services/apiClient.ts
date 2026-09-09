@@ -9,7 +9,7 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: object | FormData;
   authenticated?: boolean;
 };

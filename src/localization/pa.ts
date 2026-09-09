@@ -14,6 +14,7 @@ const pa = {
       forgotPassword: 'ਪਾਸਵਰਡ ਭੁੱਲ ਗਏ ਹੋ?',
     },
     dashboard: {
+      dashboard: 'ਡੈਸ਼ਬੋਰਡ',
       overview: 'ਓਵਰਵਿਊ',
       guard: 'ਗਾਰਡ',
       sites: 'ਸਾਈਟਾਂ',

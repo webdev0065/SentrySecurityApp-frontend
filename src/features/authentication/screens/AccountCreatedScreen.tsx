@@ -8,10 +8,14 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
-import type { AuthStackParamList } from '../../../navigation/types';
+import type {
+  AuthStackParamList,
+  RootStackParamList,
+} from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 
@@ -34,49 +38,64 @@ const DOTS = [
   { left: 296, top: 415, color: '#35C759' },
 ];
 
-const AccountCreatedScreen: React.FC<Props> = ({ navigation }) => (
-  <View style={styles.container}>
-    <StatusBar barStyle="dark-content" />
+const AccountCreatedScreen: React.FC<Props> = ({ navigation, route }) => {
+  const returnToSuperAdmin = route.params?.returnToSuperAdmin === true;
+  const complete = () => {
+    if (returnToSuperAdmin) {
+      navigation
+        .getParent<NativeStackNavigationProp<RootStackParamList>>()
+        ?.reset({
+          index: 0,
+          routes: [{ name: 'SuperAdminFlow' }],
+        });
+      return;
+    }
+    navigation.popToTop();
+  };
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
 
-    <LanguageSelector />
+      <LanguageSelector />
 
-    {DOTS.map((dot, index) => (
-      <View
-        key={index}
-        style={[
-          styles.confettiDot,
-          {
-            left: scaleWidth(dot.left),
-            top: scaleHeight(dot.top),
-            backgroundColor: dot.color,
-          },
-        ]}
+      {DOTS.map((dot, index) => (
+        <View
+          key={index}
+          style={[
+            styles.confettiDot,
+            {
+              left: scaleWidth(dot.left),
+              top: scaleHeight(dot.top),
+              backgroundColor: dot.color,
+            },
+          ]}
+        />
+      ))}
+
+      <Image
+        source={require('../../../assets/images/login-shield-logo.png')}
+        style={styles.successShield}
+        resizeMode="contain"
       />
-    ))}
+      <View style={styles.successBadge}>
+        <Feather name="check" size={scaleFont(34)} color={colors.white} />
+      </View>
 
-    <Image
-      source={require('../../../assets/images/login-shield-logo.png')}
-      style={styles.successShield}
-      resizeMode="contain"
-    />
-    <View style={styles.successBadge}>
-      <Feather name="check" size={scaleFont(34)} color={colors.white} />
+      <Text style={styles.heading}>Account Created{`\n`}Successfully!</Text>
+      <Text style={styles.subtitle}>
+        {route.params?.approvalPending
+          ? 'Your agency account is awaiting Super Admin approval. You can log in once approved.'
+          : 'Your account has been created.\nYou can now login and explore\nthe app.'}
+      </Text>
+
+      <TouchableOpacity style={styles.loginButton} onPress={complete}>
+        <Text style={styles.loginButtonText}>
+          {returnToSuperAdmin ? 'Back to Super Admin' : 'Go to Login'}
+        </Text>
+      </TouchableOpacity>
     </View>
-
-    <Text style={styles.heading}>Account Created{`\n`}Successfully!</Text>
-    <Text style={styles.subtitle}>
-      Your account has been created.{`\n`}You can now login and explore{`\n`}the
-      app.
-    </Text>
-
-    <TouchableOpacity
-      style={styles.loginButton}
-      onPress={() => navigation.popToTop()}
-    >
-      <Text style={styles.loginButtonText}>Go to Login</Text>
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },

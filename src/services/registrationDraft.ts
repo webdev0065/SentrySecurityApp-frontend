@@ -5,13 +5,17 @@ export type RegistrationDraft = {
   password: string;
   account_type: 'agency' | 'client';
   profile?: Record<string, string>;
+  origin?: 'self' | 'superAdmin';
 };
 
 let draft: RegistrationDraft | null = null;
 
 export const registrationDraft = {
-  setAccount: (account: Omit<RegistrationDraft, 'profile'>) => {
-    draft = { ...account };
+  setAccount: (
+    account: Omit<RegistrationDraft, 'profile' | 'origin'>,
+    origin: RegistrationDraft['origin'] = 'self',
+  ) => {
+    draft = { ...account, origin };
   },
   setProfile: (profile: Record<string, string>) => {
     if (!draft)

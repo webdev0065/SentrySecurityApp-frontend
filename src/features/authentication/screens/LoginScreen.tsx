@@ -50,12 +50,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     try {
       setIsSubmitting(true);
       const response = await authService.login(identifier.trim(), password);
-      const accountType = response.admin?.account_type ?? response.user?.account_type;
+      const accountType =
+        response.admin?.account_type ?? response.user?.account_type;
       navigation
         .getParent<NativeStackNavigationProp<RootStackParamList>>()
         ?.reset({
           index: 0,
-          routes: [{ name: accountType === 'superAdmin' ? 'SuperAdminFlow' : 'MainFlow' }],
+          routes: [
+            {
+              name:
+                accountType === 'superAdmin' ? 'SuperAdminFlow' : 'MainFlow',
+            },
+          ],
         });
     } catch (error) {
       Alert.alert(

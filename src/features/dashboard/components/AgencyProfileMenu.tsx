@@ -2,7 +2,10 @@ import React, { useRef, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { MainStackParamList, RootStackParamList } from '../../../navigation/types';
+import type {
+  MainStackParamList,
+  RootStackParamList,
+} from '../../../navigation/types';
 import { session } from '../../../services/session';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +40,13 @@ const Row = ({
 }) => {
   const tint = danger ? '#F22121' : active ? '#2563EB' : colors.primary;
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.75} disabled={disabled} accessibilityState={{ disabled }}>
+    <TouchableOpacity
+      style={styles.row}
+      onPress={onPress}
+      activeOpacity={0.75}
+      disabled={disabled}
+      accessibilityState={{ disabled }}
+    >
       <Feather name={icon} size={scaleFont(21)} color={tint} />
       <Text style={[styles.rowLabel, { color: tint }]}>{label}</Text>
       <View style={styles.right}>
@@ -72,7 +81,8 @@ const AgencyProfileMenu: React.FC<Props> = ({
   },
 }) => {
   const { i18n, t } = useTranslation();
-  const navigation = useNavigation<NativeStackNavigationProp<MainStackParamList>>();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<MainStackParamList>>();
   const logoutPending = useRef(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const logout = async () => {
@@ -200,7 +210,9 @@ const AgencyProfileMenu: React.FC<Props> = ({
         icon="log-out"
         label={t('dashboard.logOut')}
         danger
-        onPress={() => { void logout(); }}
+        onPress={() => {
+          void logout();
+        }}
         disabled={loggingOut}
       />
     </View>

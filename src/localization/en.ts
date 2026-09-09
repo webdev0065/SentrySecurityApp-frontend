@@ -24,6 +24,7 @@ const en = {
       forgotPassword: 'Forgot Password?',
     },
     dashboard: {
+      dashboard: 'Dashboard',
       overview: 'Overview',
       guard: 'Guard',
       sites: 'Sites',

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Image,
@@ -14,13 +14,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
-import { INDIAN_STATES_AND_UNION_TERRITORIES } from '../../../constants/indianStates';
 import type { AuthStackParamList } from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { digitsOnly, isValidPincode } from '../../../utils/validation';
 import { authService } from '../../../services/authService';
 import { registrationDraft } from '../../../services/registrationDraft';
+import {
+  indiaLocationService,
+  type IndiaLocationOption,
+} from '../../../services/indiaLocationService';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'AgencyDetails'>;
 
@@ -40,28 +43,104 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
   const [officeAddress, setOfficeAddress] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+  const [district, setDistrict] = useState('');
   const [pincode, setPincode] = useState('');
   const [businessOpen, setBusinessOpen] = useState(false);
-  const [stateOpen, setStateOpen] = useState(false);
-  const [stateQuery, setStateQuery] = useState('');
+  const [locationOpen, setLocationOpen] = useState<
+    'state' | 'district' | 'city' | null
+  >(null);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [states, setStates] = useState<IndiaLocationOption[]>([]);
+  const [districts, setDistricts] = useState<IndiaLocationOption[]>([]);
+  const [cities, setCities] = useState<IndiaLocationOption[]>([]);
+  const [stateSlug, setStateSlug] = useState('');
+  const [districtSlug, setDistrictSlug] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredStates = useMemo(
-    () =>
-      INDIAN_STATES_AND_UNION_TERRITORIES.filter(item =>
-        item.toLowerCase().includes(stateQuery.trim().toLowerCase()),
-      ),
-    [stateQuery],
-  );
+  useEffect(() => {
+    let isMounted = true;
+
+    void indiaLocationService
+      .getStates()
+      .then(options => {
+        if (isMounted) setStates(options);
+      })
+      .catch(() => {
+        if (isMounted)
+          setLocationError('Unable to load locations. Please try again.');
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const locationOptions = useMemo(() => {
+    const options =
+      locationOpen === 'state'
+        ? states
+        : locationOpen === 'district'
+        ? districts
+        : cities;
+    const query = locationQuery.trim().toLowerCase();
+    return options.filter(option => option.name.toLowerCase().includes(query));
+  }, [cities, districts, locationOpen, locationQuery, states]);
 
   const toggleBusinessMenu = () => {
     setBusinessOpen(current => !current);
-    setStateOpen(false);
+    setLocationOpen(null);
   };
 
-  const toggleStateMenu = () => {
-    setStateOpen(current => !current);
+  const openLocationMenu = async (menu: 'state' | 'district' | 'city') => {
+    if (locationOpen === menu) {
+      setLocationOpen(null);
+      return;
+    }
+
+    setLocationQuery('');
     setBusinessOpen(false);
+    setLocationError(null);
+    setLocationOpen(menu);
+
+    try {
+      setLocationLoading(true);
+      if (menu === 'state' && !states.length) {
+        setStates(await indiaLocationService.getStates());
+      } else if (menu === 'district' && stateSlug) {
+        setDistricts(await indiaLocationService.getDistricts(stateSlug));
+      } else if (menu === 'city' && stateSlug && districtSlug) {
+        setCities(
+          await indiaLocationService.getCities(stateSlug, districtSlug),
+        );
+      }
+    } catch {
+      setLocationError('Unable to load locations. Please try again.');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
+
+  const selectLocation = (option: IndiaLocationOption) => {
+    if (locationOpen === 'state') {
+      setState(option.name);
+      setStateSlug(option.slug);
+      setDistrict('');
+      setDistrictSlug('');
+      setCity('');
+      setDistricts([]);
+      setCities([]);
+    } else if (locationOpen === 'district') {
+      setDistrict(option.name);
+      setDistrictSlug(option.slug);
+      setCity('');
+      setCities([]);
+    } else if (locationOpen === 'city') {
+      setCity(option.name);
+    }
+    setLocationOpen(null);
+    setLocationQuery('');
   };
 
   const handleContinue = async () => {
@@ -92,6 +171,10 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('State required', 'Select your state or Union Territory.');
       return;
     }
+    if (!district) {
+      Alert.alert('District required', 'Select your district.');
+      return;
+    }
     if (!isValidPincode(pincode)) {
       Alert.alert('Invalid pincode', 'Enter a valid 6-digit pincode.');
       return;
@@ -105,6 +188,7 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
         officeAddress: officeAddress.trim(),
         city: city.trim(),
         state,
+        district,
         pincode,
       });
       const mobile = registrationDraft.get()?.mobile_number;
@@ -219,39 +303,88 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.labelCity}>City</Text>
-        <TextInput
-          value={city}
-          onChangeText={setCity}
-          style={[styles.input, styles.cityInput]}
-          placeholder="Enter city"
-          placeholderTextColor="#A3A3A3"
-        />
-
         <Text style={styles.labelState}>State</Text>
         <TouchableOpacity
           style={[styles.input, styles.stateInput]}
-          onPress={toggleStateMenu}
+          onPress={() => void openLocationMenu('state')}
         >
           <Text style={[styles.selectText, !state && styles.placeholder]}>
             {state || 'Select state'}
           </Text>
           <Feather
-            name={stateOpen ? 'chevron-up' : 'chevron-down'}
+            name={locationOpen === 'state' ? 'chevron-up' : 'chevron-down'}
             size={scaleFont(24)}
             color={colors.primary}
           />
         </TouchableOpacity>
 
-        {stateOpen && (
-          <View style={styles.stateMenu}>
+        <Text style={styles.labelDistrict}>District</Text>
+        <TouchableOpacity
+          style={[
+            styles.input,
+            styles.districtInput,
+            !state && styles.disabledInput,
+          ]}
+          onPress={() => state && void openLocationMenu('district')}
+          disabled={!state}
+        >
+          <Text style={[styles.selectText, !district && styles.placeholder]}>
+            {district || 'Select district'}
+          </Text>
+          <Feather
+            name={locationOpen === 'district' ? 'chevron-up' : 'chevron-down'}
+            size={scaleFont(24)}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+
+        <Text style={styles.labelCity}>City</Text>
+        <TouchableOpacity
+          style={[
+            styles.input,
+            styles.cityInput,
+            !district && styles.disabledInput,
+          ]}
+          onPress={() => district && void openLocationMenu('city')}
+          disabled={!district}
+        >
+          <Text style={[styles.selectText, !city && styles.placeholder]}>
+            {city || 'Select city'}
+          </Text>
+          <Feather
+            name={locationOpen === 'city' ? 'chevron-up' : 'chevron-down'}
+            size={scaleFont(24)}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+
+        {locationOpen && (
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.dropdownBackdrop}
+            onPress={() => setLocationOpen(null)}
+            accessibilityLabel="Close location options"
+          />
+        )}
+
+        {locationOpen && (
+          <View
+            style={[
+              styles.locationMenu,
+              locationOpen === 'state'
+                ? styles.stateMenu
+                : locationOpen === 'district'
+                ? styles.districtMenu
+                : styles.cityMenu,
+            ]}
+          >
             <View style={styles.stateSearch}>
               <Feather name="search" size={scaleFont(21)} color="#A3A3A3" />
               <TextInput
-                value={stateQuery}
-                onChangeText={setStateQuery}
+                value={locationQuery}
+                onChangeText={setLocationQuery}
                 style={styles.searchInput}
-                placeholder="Select state"
+                placeholder={`Search ${locationOpen}`}
                 placeholderTextColor="#A3A3A3"
               />
             </View>
@@ -261,19 +394,28 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
               nestedScrollEnabled
               keyboardShouldPersistTaps="handled"
             >
-              {filteredStates.map(item => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.stateOption}
-                  onPress={() => {
-                    setState(item);
-                    setStateOpen(false);
-                    setStateQuery('');
-                  }}
-                >
-                  <Text style={styles.stateOptionText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
+              {locationLoading ? (
+                <Text style={styles.noLocation}>Loading locations…</Text>
+              ) : null}
+              {!locationLoading && locationError ? (
+                <Text style={styles.noLocation}>{locationError}</Text>
+              ) : null}
+              {!locationLoading &&
+                !locationError &&
+                locationOptions.map(option => (
+                  <TouchableOpacity
+                    key={option.slug}
+                    style={styles.stateOption}
+                    onPress={() => selectLocation(option)}
+                  >
+                    <Text style={styles.stateOptionText}>{option.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              {!locationLoading && !locationError && !locationOptions.length ? (
+                <Text style={styles.noLocation}>
+                  No matching locations found.
+                </Text>
+              ) : null}
             </ScrollView>
           </View>
         )}
@@ -307,7 +449,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.white },
   scrollContent: {
     width: scaleWidth(402),
-    height: scaleHeight(1032),
+    height: scaleHeight(1210),
     backgroundColor: colors.white,
   },
   backButton: {
@@ -431,39 +573,52 @@ const styles = StyleSheet.create({
   officeInput: { top: scaleHeight(624) },
   labelCity: {
     position: 'absolute',
-    left: scaleWidth(27),
-    top: scaleHeight(693),
+    left: scaleWidth(23),
+    top: scaleHeight(897),
     fontSize: scaleFont(22),
     fontWeight: '500',
     color: colors.primary,
   },
   cityInput: {
-    left: scaleWidth(19),
-    top: scaleHeight(724),
-    width: scaleWidth(173),
+    top: scaleHeight(927),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   labelState: {
     position: 'absolute',
-    left: scaleWidth(215),
+    left: scaleWidth(23),
     top: scaleHeight(693),
     fontSize: scaleFont(22),
     fontWeight: '500',
     color: colors.primary,
   },
   stateInput: {
-    left: scaleWidth(209),
     top: scaleHeight(724),
-    width: scaleWidth(173),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  stateMenu: {
+  labelDistrict: {
+    position: 'absolute',
+    left: scaleWidth(23),
+    top: scaleHeight(795),
+    fontSize: scaleFont(22),
+    fontWeight: '500',
+    color: colors.primary,
+  },
+  districtInput: {
+    top: scaleHeight(825),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  disabledInput: { opacity: 0.55 },
+  locationMenu: {
     position: 'absolute',
     left: scaleWidth(19),
-    top: scaleHeight(783),
     width: scaleWidth(363),
-    height: scaleHeight(238),
+    height: scaleHeight(163),
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.primary,
@@ -475,6 +630,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 3, height: 9 },
   },
+  dropdownBackdrop: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: scaleWidth(402),
+    height: scaleHeight(1210),
+    zIndex: 25,
+  },
+  stateMenu: { top: scaleHeight(783) },
+  districtMenu: { top: scaleHeight(884) },
+  cityMenu: { top: scaleHeight(986) },
   stateSearch: {
     height: scaleHeight(39),
     borderBottomWidth: 1,
@@ -498,19 +664,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: scaleWidth(23),
   },
   stateOptionText: { fontSize: scaleFont(20), color: '#000000' },
+  noLocation: {
+    padding: scaleWidth(16),
+    fontSize: scaleFont(16),
+    color: '#666666',
+  },
   labelPincode: {
     position: 'absolute',
     left: scaleWidth(23),
-    top: scaleHeight(796),
+    top: scaleHeight(998),
     fontSize: scaleFont(22),
     fontWeight: '500',
     color: colors.primary,
   },
-  pincodeInput: { top: scaleHeight(826) },
+  pincodeInput: { top: scaleHeight(1028) },
   continueButton: {
     position: 'absolute',
     left: scaleWidth(19),
-    top: scaleHeight(950),
+    top: scaleHeight(1128),
     width: scaleWidth(363),
     height: scaleHeight(50),
     borderRadius: 8,

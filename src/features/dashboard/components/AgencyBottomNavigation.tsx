@@ -25,7 +25,7 @@ const tabs: Array<{
   labelKey: string;
   icon: React.ComponentProps<typeof Feather>['name'];
 }> = [
-  { key: 'overview', labelKey: 'overview', icon: 'home' },
+  { key: 'overview', labelKey: 'dashboard', icon: 'layout' },
   { key: 'guards', labelKey: 'guard', icon: 'users' },
   { key: 'sites', labelKey: 'sites', icon: 'grid' },
   { key: 'incidents', labelKey: 'incidents', icon: 'alert-triangle' },

@@ -4,8 +4,14 @@ import { registrationDraft, type RegistrationDraft } from './registrationDraft';
 
 type AuthResponse = {
   message?: string;
-  token: string;
-  admin?: { id: number; full_name: string; email: string; account_type: string };
+  token?: string;
+  approval_status?: 'pending' | 'approved';
+  admin?: {
+    id: number;
+    full_name: string;
+    email: string;
+    account_type: string;
+  };
   user?: { id: number; full_name: string; email: string; account_type: string };
 };
 
@@ -20,11 +26,15 @@ export const authService = {
       // The current unified API authenticates both roles with an email address.
       body: { email, password },
     });
+    if (!response.token) throw new Error(response.message || 'Login could not be completed.');
     await session.setToken(response.token);
     return response;
   },
-  startRegistration: async (payload: Omit<RegistrationDraft, 'profile'>) => {
-    registrationDraft.setAccount(payload);
+  startRegistration: async (
+    payload: Omit<RegistrationDraft, 'profile' | 'origin'>,
+    origin: RegistrationDraft['origin'] = 'self',
+  ) => {
+    registrationDraft.setAccount(payload, origin);
   },
   // Temporary development bypass: no SMS is sent until Firebase OTP is enabled.
   async sendMobileOtp(_mobile: string) {
@@ -37,13 +47,21 @@ export const authService = {
         'Your registration details are missing. Please start again.',
       );
     }
+    const { origin, ...registration } = draft;
     const response = await apiRequest<AuthResponse>('/complete-registration', {
       method: 'POST',
-      body: { ...draft, otp: code, mobile_number: formatPhoneNumber(mobile) },
+      body: {
+        ...registration,
+        otp: code,
+        mobile_number: formatPhoneNumber(mobile),
+      },
     });
-    await session.setToken(response.token);
+    if (origin !== 'superAdmin') {
+      if (response.token && response.approval_status !== 'pending') await session.setToken(response.token);
+      else await session.clearToken();
+    }
     registrationDraft.clear();
-    return response;
+    return { ...response, returnToSuperAdmin: origin === 'superAdmin' };
   },
   async requestPasswordReset(identifier: string) {
     await session.setPendingIdentifier(identifier);

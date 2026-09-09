@@ -14,6 +14,7 @@ const hi = {
       forgotPassword: 'पासवर्ड भूल गए?',
     },
     dashboard: {
+      dashboard: 'डैशबोर्ड',
       overview: 'ओवरव्यू',
       guard: 'गार्ड',
       sites: 'साइट्स',
