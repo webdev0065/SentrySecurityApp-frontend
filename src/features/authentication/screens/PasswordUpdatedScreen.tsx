@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
 import type { AuthStackParamList } from '../../../navigation/types';
@@ -35,6 +36,7 @@ const DOTS = [
 ];
 
 const PasswordUpdatedScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -65,16 +67,14 @@ const PasswordUpdatedScreen: React.FC<Props> = ({ navigation }) => {
         <Feather name="check" size={scaleFont(34)} color={colors.white} />
       </View>
 
-      <Text style={styles.heading}>Password Updated{`\n`}Successfully!</Text>
-      <Text style={styles.subtitle}>
-        Your password has been changed{`\n`}successfully.
-      </Text>
+      <Text style={styles.heading}>{t('auth.passwordUpdated')}</Text>
+      <Text style={styles.subtitle}>{t('auth.passwordChanged')}</Text>
 
       <TouchableOpacity
         style={styles.loginButton}
         onPress={() => navigation.popToTop()}
       >
-        <Text style={styles.loginButtonText}>Go to Login</Text>
+        <Text style={styles.loginButtonText}>{t('auth.goToLogin')}</Text>
       </TouchableOpacity>
     </View>
   );

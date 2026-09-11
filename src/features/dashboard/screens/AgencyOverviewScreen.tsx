@@ -149,7 +149,9 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
             icon="user-plus"
             text={t('dashboard.addGuard')}
             color="#0EAA55"
-            onPress={() => navigation.navigate('AgencyGuards')}
+            onPress={() =>
+              navigation.navigate('AgencyGuards', { openAddGuard: true })
+            }
           />
           <Action
             icon="grid"
@@ -201,7 +203,13 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
         />
       ) : null}
       {profileMenuOpen ? (
-        <AgencyProfileMenu onLogout={() => setProfileMenuOpen(false)} />
+        <AgencyProfileMenu
+          onMyProfile={() => {
+            setProfileMenuOpen(false);
+            navigation.navigate('AgencyProfile');
+          }}
+          onLogout={() => setProfileMenuOpen(false)}
+        />
       ) : null}
       <GuardsOnDutyModal
         visible={guardsOnDutyOpen}

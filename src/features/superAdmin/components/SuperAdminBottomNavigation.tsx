@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import ScalePressable from '../../../components/common/ScalePressable';
 import { colors } from '../../../styles/colors';
 import { typography } from '../../../styles/typography';
@@ -9,10 +10,10 @@ import { scaleFont, scaleHeight } from '../../../styles/dimensions';
 
 export type AdminTab = 'agencies' | 'approval' | 'live' | 'profile';
 const tabs = [
-  { key: 'agencies', label: 'Dashboard', icon: 'layout' },
-  { key: 'approval', label: 'Approval', icon: 'check-square' },
-  { key: 'live', label: 'Live Status', icon: 'activity' },
-  { key: 'profile', label: 'Profile', icon: 'user' },
+  { key: 'agencies', labelKey: 'dashboard.dashboard', icon: 'layout' },
+  { key: 'approval', labelKey: 'superAdmin.approvals', icon: 'check-square' },
+  { key: 'live', labelKey: 'superAdmin.liveStatus', icon: 'activity' },
+  { key: 'profile', labelKey: 'superAdmin.profile', icon: 'user' },
 ] as const;
 export default function SuperAdminBottomNavigation({
   activeTab,
@@ -21,6 +22,7 @@ export default function SuperAdminBottomNavigation({
   activeTab: AdminTab;
   onTabPress: (tab: AdminTab) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={s.bar}>
       {tabs.map(tab => (
@@ -37,7 +39,7 @@ export default function SuperAdminBottomNavigation({
             color={tab.key === activeTab ? colors.status.info : colors.primary}
           />
           <Text style={[s.label, tab.key === activeTab && s.active]}>
-            {tab.label}
+            {t(tab.labelKey)}
           </Text>
         </ScalePressable>
       ))}

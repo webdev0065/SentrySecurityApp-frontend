@@ -46,12 +46,10 @@ const Onboarding01Screen: React.FC<Props> = ({ navigation }) => {
       <LanguageSelector />
 
       {/* Heading — left 22, top 483, width 376, Inter ExtraBold 42 */}
-      <Text style={styles.heading}>Secure People, Secure Places.</Text>
+      <Text style={styles.heading}>{t('onboarding.step1.title')}</Text>
 
       {/* Subtitle — left 22, top 603, width 341, Inter Regular 20 */}
-      <Text style={styles.subtitle}>
-        Professional security management made simple, reliable and efficient.
-      </Text>
+      <Text style={styles.subtitle}>{t('onboarding.step1.subtitle')}</Text>
 
       {/* Pagination dots — group starts left 141, top 711 */}
       <View style={styles.dotsRow}>

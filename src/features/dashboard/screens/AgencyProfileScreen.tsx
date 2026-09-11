@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
@@ -22,6 +23,8 @@ import {
 } from '../../../services/accountService';
 import { session } from '../../../services/session';
 import { colors } from '../../../styles/colors';
+import { spacing } from '../../../styles/spacing';
+import { typography } from '../../../styles/typography';
 import {
   scaleFont as f,
   scaleHeight as h,
@@ -34,10 +37,9 @@ import AgencyTopNavigation from '../components/AgencyTopNavigation';
 import AgencyProfileMenu from '../components/AgencyProfileMenu';
 import ScalePressable from '../../../components/common/ScalePressable';
 import {
-  DISTRICT_CITIES,
-  INDIAN_STATES_AND_UNION_TERRITORIES,
-  STATE_DISTRICTS,
-} from '../../../constants/indianStates';
+  indiaLocationService,
+  type IndiaLocationOption,
+} from '../../../services/indiaLocationService';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencyProfile'>;
 type Form = Pick<
@@ -78,6 +80,12 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [picker, setPicker] = useState<'state' | 'district' | 'city' | null>(
     null,
   );
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [states, setStates] = useState<IndiaLocationOption[]>([]);
+  const [districts, setDistricts] = useState<IndiaLocationOption[]>([]);
+  const [cities, setCities] = useState<IndiaLocationOption[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationError, setLocationError] = useState('');
 
   const loadProfile = useCallback(async () => {
     try {
@@ -92,8 +100,23 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [t]);
   useEffect(() => {
-    void loadProfile();
+    loadProfile();
   }, [loadProfile]);
+  useEffect(() => {
+    let active = true;
+    indiaLocationService
+      .getStates()
+      .then(options => {
+        if (active) setStates(options);
+      })
+      .catch(() => {
+        if (active)
+          setLocationError('Unable to load locations. Please try again.');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const update = (key: keyof Form, value: string) =>
     setForm(current => ({ ...current, [key]: value }));
   const save = async () => {
@@ -103,6 +126,7 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
       !form.office_address.trim() ||
       !form.city.trim() ||
       !form.state.trim() ||
+      !form.district?.trim() ||
       !form.pincode.trim()
     ) {
       Alert.alert(
@@ -149,27 +173,77 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
     .trim()
     .charAt(0)
     .toUpperCase();
-  const pickerOptions =
-    picker === 'state'
-      ? [...INDIAN_STATES_AND_UNION_TERRITORIES]
-      : picker === 'district'
-      ? STATE_DISTRICTS[form.state] ?? []
-      : picker === 'city'
-      ? DISTRICT_CITIES[form.district ?? ''] ??
-        (form.district ? [form.district] : [])
-      : [];
-  const selectLocation = (value: string) => {
+  const pickerOptions = useMemo(() => {
+    const options =
+      picker === 'state' ? states : picker === 'district' ? districts : cities;
+    const query = pickerQuery.trim().toLowerCase();
+    return options.filter(option => option.name.toLowerCase().includes(query));
+  }, [cities, districts, picker, pickerQuery, states]);
+  const findLocation = (options: IndiaLocationOption[], value: string) =>
+    options.find(
+      option => option.name.toLowerCase() === value.trim().toLowerCase(),
+    );
+  const openPicker = async (type: Exclude<typeof picker, null>) => {
+    if (picker === type) {
+      setPicker(null);
+      return;
+    }
+    setPicker(type);
+    setPickerQuery('');
+    setLocationError('');
+    setLocationsLoading(true);
+    try {
+      const stateOptions = states.length
+        ? states
+        : await indiaLocationService.getStates();
+      if (!states.length) setStates(stateOptions);
+      if (type === 'state') return;
+      const selectedState = findLocation(stateOptions, form.state);
+      if (!selectedState) throw new Error('Select a valid state first.');
+      const districtOptions = await indiaLocationService.getDistricts(
+        selectedState.slug,
+      );
+      setDistricts(districtOptions);
+      if (type === 'district') return;
+      const selectedDistrict = findLocation(
+        districtOptions,
+        form.district ?? '',
+      );
+      if (!selectedDistrict) throw new Error('Select a valid district first.');
+      setCities(
+        await indiaLocationService.getCities(
+          selectedState.slug,
+          selectedDistrict.slug,
+        ),
+      );
+    } catch (error) {
+      setLocationError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load locations. Please try again.',
+      );
+    } finally {
+      setLocationsLoading(false);
+    }
+  };
+  const selectLocation = (option: IndiaLocationOption) => {
     if (picker === 'state')
       setForm(current => ({
         ...current,
-        state: value,
+        state: option.name,
         district: '',
         city: '',
       }));
+    if (picker === 'state') {
+      setDistricts([]);
+      setCities([]);
+    }
     if (picker === 'district')
-      setForm(current => ({ ...current, district: value, city: '' }));
-    if (picker === 'city') update('city', value);
+      setForm(current => ({ ...current, district: option.name, city: '' }));
+    if (picker === 'district') setCities([]);
+    if (picker === 'city') update('city', option.name);
     setPicker(null);
+    setPickerQuery('');
   };
 
   return (
@@ -248,13 +322,19 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
                 style={s.half}
                 label={t('dashboard.state')}
                 value={form.state}
-                onPress={() => setPicker('state')}
+                open={picker === 'state'}
+                onPress={() => {
+                  openPicker('state');
+                }}
               />
               <DropdownField
                 style={s.half}
                 label={t('dashboard.district')}
                 value={form.district ?? ''}
-                onPress={() => form.state && setPicker('district')}
+                open={picker === 'district'}
+                onPress={() => {
+                  if (form.state) openPicker('district');
+                }}
                 disabled={!form.state}
               />
             </View>
@@ -263,7 +343,10 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
                 style={s.half}
                 label={t('dashboard.city')}
                 value={form.city}
-                onPress={() => form.district && setPicker('city')}
+                open={picker === 'city'}
+                onPress={() => {
+                  if (form.district) openPicker('city');
+                }}
                 disabled={!form.district}
               />
               <Field
@@ -282,6 +365,7 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
               onPress={save}
               disabled={saving}
               accessibilityRole="button"
+              accessibilityState={{ disabled: saving, busy: saving }}
             >
               <Text style={s.saveText}>
                 {saving ? t('dashboard.saving') : t('dashboard.saveChanges')}
@@ -289,11 +373,14 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
             </ScalePressable>
             <ScalePressable
               style={s.signOut}
-              onPress={() => {
-                void signOut();
-              }}
+              onPress={signOut}
               accessibilityRole="button"
             >
+              <Feather
+                name="log-out"
+                size={f(20)}
+                color={colors.status.danger}
+              />
               <Text style={s.signOutText}>{t('dashboard.signOut')}</Text>
             </ScalePressable>
           </>
@@ -310,7 +397,10 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
         </ScalePressable>
       ) : null}
       {profileMenuOpen ? (
-        <AgencyProfileMenu onLogout={() => setProfileMenuOpen(false)} />
+        <AgencyProfileMenu
+          onMyProfile={() => setProfileMenuOpen(false)}
+          onLogout={() => setProfileMenuOpen(false)}
+        />
       ) : null}
       <Modal
         transparent
@@ -331,29 +421,62 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
                 ? t('dashboard.district')
                 : t('dashboard.city')}
             </Text>
+            <View style={s.pickerSearch}>
+              <Feather name="search" size={f(19)} color={colors.textGray} />
+              <TextInput
+                value={pickerQuery}
+                onChangeText={setPickerQuery}
+                style={s.pickerSearchInput}
+                placeholder={`${t('addGuardForm.search')} ${
+                  picker === 'state'
+                    ? t('dashboard.state')
+                    : picker === 'district'
+                    ? t('dashboard.district')
+                    : t('dashboard.city')
+                }`}
+                placeholderTextColor={colors.textGray}
+                autoCorrect={false}
+              />
+            </View>
             <ScrollView
+              style={s.pickerList}
               showsVerticalScrollIndicator
               nestedScrollEnabled
               keyboardShouldPersistTaps="handled"
             >
-              {pickerOptions.map(option => (
-                <ScalePressable
-                  key={option}
-                  style={s.option}
-                  onPress={() => selectLocation(option)}
-                  accessibilityRole="menuitem"
-                >
-                  <Text style={s.optionText}>{option}</Text>
-                  {option ===
-                  (picker === 'state'
-                    ? form.state
-                    : picker === 'district'
-                    ? form.district
-                    : form.city) ? (
-                    <Feather name="check" size={f(19)} color="#2563EB" />
-                  ) : null}
-                </ScalePressable>
-              ))}
+              {locationsLoading ? (
+                <View style={s.pickerMessage}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : null}
+              {!locationsLoading && locationError ? (
+                <Text style={s.pickerMessageText}>{locationError}</Text>
+              ) : null}
+              {!locationsLoading &&
+                !locationError &&
+                pickerOptions.map(option => (
+                  <ScalePressable
+                    key={option.slug}
+                    style={s.option}
+                    onPress={() => selectLocation(option)}
+                    accessibilityRole="menuitem"
+                  >
+                    <Text style={s.optionText}>{option.name}</Text>
+                    {option.name ===
+                    (picker === 'state'
+                      ? form.state
+                      : picker === 'district'
+                      ? form.district
+                      : form.city) ? (
+                      <Feather name="check" size={f(19)} color="#2563EB" />
+                    ) : null}
+                  </ScalePressable>
+                ))}
+              {!locationsLoading && !locationError && !pickerOptions.length ? (
+                <Text style={s.pickerMessageText}>
+                  {t('dashboard.noMatchingLocations')}
+                </Text>
+              ) : null}
             </ScrollView>
           </View>
         </TouchableOpacity>
@@ -403,8 +526,9 @@ const DropdownField: React.FC<{
   value: string;
   onPress: () => void;
   disabled?: boolean;
+  open?: boolean;
   style?: object;
-}> = ({ label, value, onPress, disabled, style }) => (
+}> = ({ label, value, onPress, disabled, open, style }) => (
   <View style={[s.field, style]}>
     <Text style={s.label}>{label}</Text>
     <ScalePressable
@@ -412,10 +536,14 @@ const DropdownField: React.FC<{
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled, expanded: false }}
+      accessibilityState={{ disabled, expanded: open }}
     >
       <Text style={[s.input, !value && s.placeholder]}>{value || label}</Text>
-      <Feather name="chevron-down" size={f(20)} color={colors.primary} />
+      <Feather
+        name={open ? 'chevron-up' : 'chevron-down'}
+        size={f(20)}
+        color={colors.primary}
+      />
     </ScalePressable>
   </View>
 );
@@ -501,24 +629,34 @@ const s = StyleSheet.create({
   twoCol: { flexDirection: 'row', gap: w(13) },
   half: { flex: 1 },
   save: {
-    height: h(50),
-    borderRadius: w(7),
+    minHeight: 50,
+    borderRadius: spacing.sm,
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: h(24),
+    marginTop: spacing.sm,
   },
-  saveText: { color: colors.white, fontSize: f(23), fontWeight: '700' },
+  saveText: {
+    color: colors.white,
+    fontSize: f(typography.sizes.lg),
+    fontWeight: typography.weights.bold,
+  },
   signOut: {
-    height: h(50),
-    borderRadius: w(7),
+    minHeight: 50,
+    borderRadius: spacing.sm,
     borderWidth: 1,
-    borderColor: '#EF2B2D',
+    borderColor: colors.status.danger,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: h(15),
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
-  signOutText: { color: '#EF2B2D', fontSize: f(22), fontWeight: '700' },
+  signOutText: {
+    color: colors.status.danger,
+    fontSize: f(typography.sizes.lg),
+    fontWeight: typography.weights.semiBold,
+  },
   backdrop: { ...StyleSheet.absoluteFill, zIndex: 10 },
   pickerOverlay: {
     flex: 1,
@@ -527,7 +665,6 @@ const s = StyleSheet.create({
     paddingHorizontal: w(24),
   },
   pickerSheet: {
-    maxHeight: '65%',
     backgroundColor: colors.white,
     borderRadius: w(12),
     paddingVertical: h(10),
@@ -540,6 +677,38 @@ const s = StyleSheet.create({
     fontWeight: '700',
     paddingHorizontal: w(16),
     paddingBottom: h(10),
+  },
+  pickerSearch: {
+    minHeight: h(44),
+    marginHorizontal: w(12),
+    marginBottom: h(8),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: w(8),
+    paddingHorizontal: w(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: w(8),
+  },
+  pickerSearchInput: {
+    flex: 1,
+    minHeight: h(42),
+    paddingVertical: 0,
+    color: colors.primary,
+    fontSize: f(16),
+  },
+  pickerList: { maxHeight: h(184) },
+  pickerMessage: {
+    minHeight: h(46),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerMessageText: {
+    minHeight: h(46),
+    paddingHorizontal: w(16),
+    textAlignVertical: 'center',
+    color: colors.textGray,
+    fontSize: f(14),
   },
   option: {
     minHeight: h(46),

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
 import type { AuthStackParamList } from '../../../navigation/types';
@@ -25,6 +26,7 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'VerifyMobile'>;
 const OTP_LENGTH = 6;
 
 const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [mobile, setMobile] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,8 +80,8 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
   const handleVerifyMobile = async () => {
     if (!isCompleteOtp(otp)) {
       Alert.alert(
-        'Invalid OTP',
-        'Enter the complete 6-digit verification code.',
+        t('auth.invalidOtp'),
+        t('auth.completeOtp'),
       );
       return;
     }
@@ -96,8 +98,8 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
       });
     } catch (error) {
       Alert.alert(
-        'Verification failed',
-        error instanceof Error ? error.message : 'Please try again.',
+        t('auth.verificationFailed'),
+        error instanceof Error ? error.message : t('auth.tryAgain'),
       );
     } finally {
       setIsSubmitting(false);
@@ -111,7 +113,7 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('auth.goBack')}
       >
         <Feather name="arrow-left" size={scaleFont(26)} color="#000000" />
       </TouchableOpacity>
@@ -124,8 +126,8 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
         resizeMode="cover"
       />
 
-      <Text style={styles.heading}>Verify Mobile Number</Text>
-      <Text style={styles.subtitle}>Enter the 6-digit code sent to</Text>
+      <Text style={styles.heading}>{t('auth.verifyMobile')}</Text>
+      <Text style={styles.subtitle}>{t('auth.enterCodeSent')}</Text>
       <Text style={styles.phoneNumber}>
         {mobile ? `+91 ${mobile.slice(0, 5)} ${mobile.slice(5)}` : '+91'}
       </Text>
@@ -147,12 +149,12 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
             maxLength={6}
             textAlign="center"
             selectTextOnFocus
-            accessibilityLabel={`Mobile verification digit ${index + 1}`}
+            accessibilityLabel={t('auth.mobileOtpDigit', { number: index + 1 })}
           />
         ))}
       </View>
 
-      <Text style={styles.didNotReceive}>Didn't receive OTP?</Text>
+      <Text style={styles.didNotReceive}>{t('auth.didNotReceive')}</Text>
       <View style={styles.resendRow}>
         <TouchableOpacity
           onPress={() =>
@@ -160,13 +162,13 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
             authService
               .sendMobileOtp(mobile)
               .catch(error =>
-                Alert.alert('Could not resend OTP', error.message),
+                Alert.alert(t('auth.couldNotResend'), error.message),
               )
           }
         >
-          <Text style={styles.resendLink}>Resend OTP</Text>
+          <Text style={styles.resendLink}>{t('auth.resendOtp')}</Text>
         </TouchableOpacity>
-        <Text style={styles.resendTimer}> in 00:30</Text>
+        <Text style={styles.resendTimer}> {t('auth.resendIn')}</Text>
       </View>
 
       <TouchableOpacity
@@ -175,7 +177,7 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
         disabled={isSubmitting}
       >
         <Text style={styles.verifyButtonText}>
-          {isSubmitting ? 'Verifying...' : 'Verify & Continue'}
+          {isSubmitting ? t('auth.verifying') : t('auth.verifyContinue')}
         </Text>
       </TouchableOpacity>
     </View>

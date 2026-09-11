@@ -45,11 +45,9 @@ const Onboarding02Screen: React.FC<Props> = ({ navigation }) => {
 
       <LanguageSelector />
 
-      <Text style={styles.heading}>Manage Anytime, Anywhere</Text>
+      <Text style={styles.heading}>{t('onboarding.step2.title')}</Text>
 
-      <Text style={styles.subtitle}>
-        Track guards, attendance, incidents and reports in real time.
-      </Text>
+      <Text style={styles.subtitle}>{t('onboarding.step2.subtitle')}</Text>
 
       <View style={styles.dotsRow}>
         <View style={[styles.dot, styles.dotActive]} />

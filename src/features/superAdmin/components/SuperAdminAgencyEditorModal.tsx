@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import ScalePressable from '../../../components/common/ScalePressable';
 import { colors } from '../../../styles/colors';
@@ -51,6 +52,7 @@ export default function SuperAdminAgencyEditorModal({
   onSave: (agency: DemoAgency, newPassword: string) => Promise<void>;
   onRemove: (id: string) => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState<DemoAgency | null>(agency);
   const [picker, setPicker] = useState<PickerType>(null);
   const [pickerQuery, setPickerQuery] = useState('');
@@ -224,7 +226,7 @@ export default function SuperAdminAgencyEditorModal({
         },
         newPassword,
       );
-      Alert.alert('Agency updated', 'The Agency details have been saved.');
+      Alert.alert(t('superAdmin.agencyUpdated'), t('superAdmin.agencySaved'));
       onClose();
     } catch (error) {
       Alert.alert(
@@ -249,13 +251,13 @@ export default function SuperAdminAgencyEditorModal({
         <View style={s.sheet}>
           <View style={s.header}>
             <View>
-              <Text style={s.title}>Edit Agency</Text>
-              <Text style={s.subtitle}>Manage Agency account details</Text>
+              <Text style={s.title}>{t('superAdmin.editAgency')}</Text>
+              <Text style={s.subtitle}>{t('superAdmin.manageAgency')}</Text>
             </View>
             <ScalePressable
               style={s.close}
               onPress={onClose}
-              accessibilityLabel="Close Agency editor"
+              accessibilityLabel={t('superAdmin.closeEditor')}
             >
               <Feather name="x" size={scaleFont(24)} color={colors.primary} />
             </ScalePressable>
@@ -266,54 +268,54 @@ export default function SuperAdminAgencyEditorModal({
             keyboardShouldPersistTaps="handled"
           >
             <View style={s.summary}>
-              <Text style={s.summaryTitle}>AGENCY DETAILS</Text>
-              <Summary label="Agency / owner name" value={draft.ownerName} />
-              <Summary label="Agency name" value={draft.agencyName} />
+              <Text style={s.summaryTitle}>{t('superAdmin.agencyDetails')}</Text>
+              <Summary label={t('auth.fullName')} value={draft.ownerName} />
+              <Summary label={t('details.agencyName')} value={draft.agencyName} />
               <Summary
-                label="Status"
-                value={draft.status === 'active' ? 'Active' : 'Inactive'}
+                label={t('superAdmin.status')}
+                value={draft.status === 'active' ? t('superAdmin.active') : t('superAdmin.inactive')}
               />
             </View>
-            <Text style={s.section}>ACCOUNT DETAILS</Text>
+            <Text style={s.section}>{t('superAdmin.accountDetails')}</Text>
             <Field
-              label="Agency / owner name"
+              label={t('auth.fullName')}
               value={draft.ownerName}
               onChangeText={value => update('ownerName', value)}
             />
             <Field
-              label="Email"
+              label={t('superAdmin.email')}
               value={draft.email}
               keyboardType="email-address"
               autoCapitalize="none"
               onChangeText={value => update('email', value)}
             />
             <Field
-              label="Mobile number"
+              label={t('superAdmin.mobileNumber')}
               value={draft.mobile}
               keyboardType="phone-pad"
               onChangeText={value =>
                 update('mobile', value.replace(/[^\d+]/g, ''))
               }
             />
-            <Text style={s.section}>BUSINESS DETAILS</Text>
+            <Text style={s.section}>{t('superAdmin.businessDetails')}</Text>
             <Field
-              label="Agency name"
+              label={t('details.agencyName')}
               value={draft.agencyName}
               onChangeText={value => update('agencyName', value)}
             />
             <Field
-              label="Address"
+              label={t('superAdmin.address')}
               value={draft.address}
               onChangeText={value => update('address', value)}
             />
             <SelectField
-              label="State"
+              label={t('dashboard.state')}
               value={draft.state}
               open={picker === 'state'}
               onPress={() => void openPicker('state')}
             />
             <SelectField
-              label="District"
+              label={t('dashboard.district')}
               value={draft.district}
               open={picker === 'district'}
               disabled={!draft.state}
@@ -322,7 +324,7 @@ export default function SuperAdminAgencyEditorModal({
             <View style={s.twoColumns}>
               <SelectField
                 style={s.flex}
-                label="City"
+                label={t('dashboard.city')}
                 value={draft.city}
                 open={picker === 'city'}
                 disabled={!draft.district}
@@ -330,7 +332,7 @@ export default function SuperAdminAgencyEditorModal({
               />
               <Field
                 style={s.flex}
-                label="Pincode"
+                label={t('dashboard.pincode')}
                 value={draft.pincode}
                 keyboardType="number-pad"
                 onChangeText={value =>
@@ -339,19 +341,19 @@ export default function SuperAdminAgencyEditorModal({
               />
             </View>
             <Field
-              label="GST Number (optional)"
+              label={t('details.gstNumber')}
               value={draft.gstNumber}
               autoCapitalize="characters"
               onChangeText={value => update('gstNumber', value)}
             />
             <Field
-              label="New password (leave blank to keep current)"
+              label={t('dashboard.newGuardPassword')}
               value={newPassword}
               secureTextEntry
-              placeholder="Leave blank to keep current"
+              placeholder={t('superAdmin.leavePassword')}
               onChangeText={setNewPassword}
             />
-            <Text style={s.label}>Status</Text>
+            <Text style={s.label}>{t('superAdmin.status')}</Text>
             <View style={s.statusRow}>
               {(['active', 'inactive'] as const).map(status => (
                 <ScalePressable
@@ -376,7 +378,7 @@ export default function SuperAdminAgencyEditorModal({
                           : s.inactiveStatusText),
                     ]}
                   >
-                    {status === 'active' ? 'Active' : 'Inactive'}
+                    {status === 'active' ? t('superAdmin.active') : t('superAdmin.inactive')}
                   </Text>
                 </ScalePressable>
               ))}
@@ -388,7 +390,7 @@ export default function SuperAdminAgencyEditorModal({
               accessibilityRole="button"
             >
               <Text style={s.saveText}>
-                {saving ? 'Saving…' : 'Save changes'}
+                {saving ? t('superAdmin.saving') : t('superAdmin.saveChanges')}
               </Text>
             </ScalePressable>
             {confirmingRemoval ? (
@@ -418,13 +420,13 @@ export default function SuperAdminAgencyEditorModal({
                       }
                     }}
                   >
-                    <Text style={s.removeConfirmText}>Remove agency</Text>
+                    <Text style={s.removeConfirmText}>{t('superAdmin.removeAgency')}</Text>
                   </ScalePressable>
                   <ScalePressable
                     style={s.cancel}
                     onPress={() => setConfirmingRemoval(false)}
                   >
-                    <Text style={s.cancelText}>Cancel</Text>
+                    <Text style={s.cancelText}>{t('superAdmin.cancel')}</Text>
                   </ScalePressable>
                 </View>
               </View>
@@ -434,7 +436,7 @@ export default function SuperAdminAgencyEditorModal({
                 onPress={() => setConfirmingRemoval(true)}
                 accessibilityRole="button"
               >
-                <Text style={s.removeText}>Remove agency</Text>
+                <Text style={s.removeText}>{t('superAdmin.removeAgency')}</Text>
               </ScalePressable>
             )}
           </ScrollView>
@@ -480,7 +482,7 @@ export default function SuperAdminAgencyEditorModal({
               keyboardShouldPersistTaps="handled"
             >
               {locationsLoading ? (
-                <Text style={s.pickerMessage}>Loading locations…</Text>
+                <Text style={s.pickerMessage}>{t('superAdmin.loadingLocations')}</Text>
               ) : null}
               {!locationsLoading && locationError ? (
                 <Text style={s.pickerMessage}>{locationError}</Text>

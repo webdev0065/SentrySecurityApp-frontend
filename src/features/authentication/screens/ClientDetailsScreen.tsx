@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
 import { INDIAN_STATES_AND_UNION_TERRITORIES } from '../../../constants/indianStates';
@@ -25,6 +26,7 @@ import { registrationDraft } from '../../../services/registrationDraft';
 type Props = NativeStackScreenProps<AuthStackParamList, 'ClientDetails'>;
 
 const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [companyName, setCompanyName] = useState('');
   const [siteName, setSiteName] = useState('');
   const [siteAddress, setSiteAddress] = useState('');
@@ -52,23 +54,23 @@ const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (siteName.trim().length < 2) {
-      Alert.alert('Site name required', 'Enter your site or property name.');
+      Alert.alert(t('details.siteNameRequired'), t('details.enterProperty'));
       return;
     }
     if (siteAddress.trim().length < 5) {
-      Alert.alert('Site address required', 'Enter the site address.');
+      Alert.alert(t('details.siteAddressRequired'), t('details.enterAddress'));
       return;
     }
     if (city.trim().length < 2) {
-      Alert.alert('City required', 'Enter your city.');
+      Alert.alert(t('details.cityRequired'), t('details.enterYourCity'));
       return;
     }
     if (!state) {
-      Alert.alert('State required', 'Select your state or Union Territory.');
+      Alert.alert(t('details.stateRequired'), t('details.selectStateTerritory'));
       return;
     }
     if (!isValidPincode(pincode)) {
-      Alert.alert('Invalid pincode', 'Enter a valid 6-digit pincode.');
+      Alert.alert(t('details.invalidPincode'), t('details.enterValidPincode'));
       return;
     }
     try {
@@ -110,7 +112,7 @@ const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('auth.goBack')}
         >
           <Feather name="arrow-left" size={scaleFont(26)} color="#000000" />
         </TouchableOpacity>
@@ -123,46 +125,46 @@ const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
           resizeMode="cover"
         />
 
-        <Text style={styles.heading}>Client Details</Text>
-        <Text style={styles.subtitle}>Tell us about your organization</Text>
+        <Text style={styles.heading}>{t('details.clientTitle')}</Text>
+        <Text style={styles.subtitle}>{t('details.clientSubtitle')}</Text>
 
-        <Text style={styles.companyLabel}>Company / Organization Name</Text>
+        <Text style={styles.companyLabel}>{t('details.companyName')}</Text>
         <TextInput
           value={companyName}
           onChangeText={setCompanyName}
           style={[styles.input, styles.companyInput]}
-          placeholder="Enter company name"
+          placeholder={t('details.enterCompanyName')}
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.siteNameLabel}>Site / Property Name</Text>
+        <Text style={styles.siteNameLabel}>{t('details.siteName')}</Text>
         <TextInput
           value={siteName}
           onChangeText={setSiteName}
           style={[styles.input, styles.siteNameInput]}
-          placeholder="Enter site/property name"
+          placeholder={t('details.enterSiteName')}
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.siteAddressLabel}>Site Address</Text>
+        <Text style={styles.siteAddressLabel}>{t('details.siteAddress')}</Text>
         <TextInput
           value={siteAddress}
           onChangeText={setSiteAddress}
           style={[styles.input, styles.siteAddressInput]}
-          placeholder="Enter site address"
+          placeholder={t('details.enterSiteAddress')}
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.cityLabel}>City</Text>
+        <Text style={styles.cityLabel}>{t('dashboard.city')}</Text>
         <TextInput
           value={city}
           onChangeText={setCity}
           style={[styles.input, styles.cityInput]}
-          placeholder="Enter city"
+          placeholder={t('details.enterCity')}
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.stateLabel}>State</Text>
+        <Text style={styles.stateLabel}>{t('dashboard.state')}</Text>
         <TouchableOpacity
           style={[styles.input, styles.stateInput]}
           onPress={() => setStateOpen(current => !current)}
@@ -185,7 +187,7 @@ const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
                 value={stateQuery}
                 onChangeText={setStateQuery}
                 style={styles.searchInput}
-                placeholder="Select state"
+                placeholder={t('details.selectState')}
                 placeholderTextColor="#A3A3A3"
               />
             </View>
@@ -212,12 +214,12 @@ const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <Text style={styles.pincodeLabel}>Pincode</Text>
+        <Text style={styles.pincodeLabel}>{t('dashboard.pincode')}</Text>
         <TextInput
           value={pincode}
           onChangeText={value => setPincode(digitsOnly(value).slice(0, 6))}
           style={[styles.input, styles.pincodeInput]}
-          placeholder="Enter pincode"
+          placeholder={t('details.enterPincode')}
           placeholderTextColor="#A3A3A3"
           keyboardType="number-pad"
           maxLength={6}

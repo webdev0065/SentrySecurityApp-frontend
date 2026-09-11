@@ -169,7 +169,13 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
         />
       ) : null}
       {profileMenuOpen ? (
-        <AgencyProfileMenu onLogout={() => setProfileMenuOpen(false)} />
+        <AgencyProfileMenu
+          onMyProfile={() => {
+            setProfileMenuOpen(false);
+            navigation.navigate('AgencyProfile');
+          }}
+          onLogout={() => setProfileMenuOpen(false)}
+        />
       ) : null}
       <FileIncidentModal
         visible={fileModalOpen}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
@@ -11,6 +12,7 @@ type Props = {
   onProfilePress: () => void;
   onNotificationPress?: () => void;
   unreadNotificationCount?: number;
+  avatarInitials?: string;
 };
 
 const AgencyTopNavigation: React.FC<Props> = ({
@@ -18,8 +20,10 @@ const AgencyTopNavigation: React.FC<Props> = ({
   onProfilePress,
   onNotificationPress,
   unreadNotificationCount = 0,
-}) => (
-  <View style={styles.header}>
+  avatarInitials = 'SR',
+}) => {
+  const { t } = useTranslation();
+  return <View style={styles.header}>
     <Image
       source={require('../../../assets/images/sentry-logo-horizontal.png')}
       style={styles.logo}
@@ -30,7 +34,7 @@ const AgencyTopNavigation: React.FC<Props> = ({
         style={styles.bell}
         onPress={onNotificationPress}
         disabled={!onNotificationPress}
-        accessibilityLabel="Open notifications"
+        accessibilityLabel={t('superAdmin.notifications')}
       >
         <Feather name="bell" size={scaleFont(25)} color={colors.primary} />
         {unreadNotificationCount > 0 ? (
@@ -44,10 +48,10 @@ const AgencyTopNavigation: React.FC<Props> = ({
       <ScalePressable
         style={styles.profileTrigger}
         onPress={onProfilePress}
-        accessibilityLabel="Open profile menu"
+        accessibilityLabel={t('dashboard.myProfile')}
       >
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>SR</Text>
+          <Text style={styles.avatarText}>{avatarInitials}</Text>
           <View style={styles.online} />
         </View>
         <Feather
@@ -57,8 +61,8 @@ const AgencyTopNavigation: React.FC<Props> = ({
         />
       </ScalePressable>
     </View>
-  </View>
-);
+  </View>;
+};
 
 const styles = StyleSheet.create({
   header: {

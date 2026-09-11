@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
 import type { AuthStackParamList } from '../../../navigation/types';
@@ -22,14 +23,14 @@ import { authService } from '../../../services/authService';
 type Props = NativeStackScreenProps<AuthStackParamList, 'ForgotPassword'>;
 
 const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSendOtp = async () => {
     if (!isValidIdentifier(identifier)) {
       Alert.alert(
-        'Invalid details',
-        'Enter a valid email address or mobile number.',
+        t('auth.invalidDetails'), t('auth.enterValidIdentifier'),
       );
       return;
     }
@@ -39,8 +40,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate('VerifyOTP');
     } catch (error) {
       Alert.alert(
-        'Could not send OTP',
-        error instanceof Error ? error.message : 'Please try again.',
+        t('auth.couldNotSendOtp'), error instanceof Error ? error.message : t('auth.tryAgain'),
       );
     } finally {
       setIsSubmitting(false);
@@ -54,7 +54,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('auth.goBack')}
       >
         <Feather name="arrow-left" size={scaleFont(26)} color="#000000" />
       </TouchableOpacity>
@@ -67,19 +67,17 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
         resizeMode="cover"
       />
 
-      <Text style={styles.heading}>Forgot Password</Text>
-      <Text style={styles.subtitle}>
-        Enter your registered mobile number{`\n`}or email address
-      </Text>
+      <Text style={styles.heading}>{t('auth.forgotTitle')}</Text>
+      <Text style={styles.subtitle}>{t('auth.forgotSubtitle')}</Text>
 
-      <Text style={styles.identifierLabel}>Email or Mobile Number</Text>
+      <Text style={styles.identifierLabel}>{t('auth.emailOrMobile')}</Text>
       <View style={styles.inputWrapper}>
         <Feather name="user" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput
           value={identifier}
           onChangeText={setIdentifier}
           style={styles.input}
-          placeholder="you@example.com or +91 98765 43210"
+          placeholder={t('auth.identifierPlaceholder')}
           placeholderTextColor="#A3A3A3"
           autoCapitalize="none"
           autoCorrect={false}
@@ -93,14 +91,14 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
         disabled={isSubmitting}
       >
         <Text style={styles.sendOtpText}>
-          {isSubmitting ? 'Sending...' : 'Send OTP'}
+          {isSubmitting ? t('auth.sending') : t('auth.sendOtp')}
         </Text>
       </TouchableOpacity>
 
       <View style={styles.rememberRow}>
-        <Text style={styles.rememberText}>Remember your password?</Text>
+        <Text style={styles.rememberText}>{t('auth.rememberPassword')}</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.loginLink}> Log in</Text>
+          <Text style={styles.loginLink}> {t('auth.login')}</Text>
         </TouchableOpacity>
       </View>
     </View>

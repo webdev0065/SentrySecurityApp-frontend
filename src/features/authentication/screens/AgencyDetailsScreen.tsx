@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
 import type { AuthStackParamList } from '../../../navigation/types';
@@ -37,6 +38,7 @@ const BUSINESS_TYPES = [
 ] as const;
 
 const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [agencyName, setAgencyName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [gstNumber, setGstNumber] = useState('');
@@ -145,11 +147,11 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = async () => {
     if (agencyName.trim().length < 2) {
-      Alert.alert('Agency name required', 'Enter your agency or company name.');
+      Alert.alert(t('details.agencyNameRequired'), t('details.enterAgencyCompany'));
       return;
     }
     if (!businessType) {
-      Alert.alert('Business type required', 'Select your business type.');
+      Alert.alert(t('details.businessRequired'), t('details.selectBusiness'));
       return;
     }
     if (gstNumber && !/^[A-Z0-9]{15}$/.test(gstNumber.trim().toUpperCase())) {
@@ -160,23 +162,23 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (officeAddress.trim().length < 5) {
-      Alert.alert('Office address required', 'Enter your office address.');
+      Alert.alert(t('details.officeRequired'), t('details.enterOffice'));
       return;
     }
     if (city.trim().length < 2) {
-      Alert.alert('City required', 'Enter your city.');
+      Alert.alert(t('details.cityRequired'), t('details.enterYourCity'));
       return;
     }
     if (!state) {
-      Alert.alert('State required', 'Select your state or Union Territory.');
+      Alert.alert(t('details.stateRequired'), t('details.selectStateTerritory'));
       return;
     }
     if (!district) {
-      Alert.alert('District required', 'Select your district.');
+      Alert.alert(t('details.districtRequired'), t('details.selectDistrict'));
       return;
     }
     if (!isValidPincode(pincode)) {
-      Alert.alert('Invalid pincode', 'Enter a valid 6-digit pincode.');
+      Alert.alert(t('details.invalidPincode'), t('details.enterValidPincode'));
       return;
     }
     try {
@@ -220,7 +222,7 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Go back"
+          accessibilityLabel={t('auth.goBack')}
         >
           <Feather name="arrow-left" size={scaleFont(26)} color="#000000" />
         </TouchableOpacity>
@@ -233,19 +235,19 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           resizeMode="cover"
         />
 
-        <Text style={styles.heading}>Agency Details</Text>
-        <Text style={styles.subtitle}>Tell us about your agency</Text>
+        <Text style={styles.heading}>{t('details.agencyTitle')}</Text>
+        <Text style={styles.subtitle}>{t('details.agencySubtitle')}</Text>
 
-        <Text style={styles.labelAgencyName}>Agency / Company Name</Text>
+        <Text style={styles.labelAgencyName}>{t('details.agencyName')}</Text>
         <TextInput
           value={agencyName}
           onChangeText={setAgencyName}
           style={[styles.input, styles.agencyNameInput]}
-          placeholder="Enter agency name"
+          placeholder={t('details.enterAgencyName')}
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.labelBusinessType}>Business Type</Text>
+        <Text style={styles.labelBusinessType}>{t('details.businessType')}</Text>
         <TouchableOpacity
           style={[styles.input, styles.businessInput]}
           onPress={toggleBusinessMenu}
@@ -284,26 +286,26 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <Text style={styles.labelGst}>GST Number (Optional)</Text>
+        <Text style={styles.labelGst}>{t('details.gstNumber')}</Text>
         <TextInput
           value={gstNumber}
           onChangeText={setGstNumber}
           style={[styles.input, styles.gstInput]}
-          placeholder="Enter GST number"
+          placeholder={t('details.enterGst')}
           placeholderTextColor="#A3A3A3"
           autoCapitalize="characters"
         />
 
-        <Text style={styles.labelOfficeAddress}>Office Address</Text>
+        <Text style={styles.labelOfficeAddress}>{t('details.officeAddress')}</Text>
         <TextInput
           value={officeAddress}
           onChangeText={setOfficeAddress}
           style={[styles.input, styles.officeInput]}
-          placeholder="Enter office address"
+          placeholder={t('details.enterOfficeAddress')}
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.labelState}>State</Text>
+        <Text style={styles.labelState}>{t('dashboard.state')}</Text>
         <TouchableOpacity
           style={[styles.input, styles.stateInput]}
           onPress={() => void openLocationMenu('state')}
@@ -318,7 +320,7 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           />
         </TouchableOpacity>
 
-        <Text style={styles.labelDistrict}>District</Text>
+        <Text style={styles.labelDistrict}>{t('dashboard.district')}</Text>
         <TouchableOpacity
           style={[
             styles.input,
@@ -338,7 +340,7 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           />
         </TouchableOpacity>
 
-        <Text style={styles.labelCity}>City</Text>
+        <Text style={styles.labelCity}>{t('dashboard.city')}</Text>
         <TouchableOpacity
           style={[
             styles.input,
@@ -363,7 +365,7 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
             activeOpacity={1}
             style={styles.dropdownBackdrop}
             onPress={() => setLocationOpen(null)}
-            accessibilityLabel="Close location options"
+            accessibilityLabel={t('details.closeLocations')}
           />
         )}
 
@@ -395,7 +397,7 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
               keyboardShouldPersistTaps="handled"
             >
               {locationLoading ? (
-                <Text style={styles.noLocation}>Loading locations…</Text>
+                <Text style={styles.noLocation}>{t('details.loadingLocations')}</Text>
               ) : null}
               {!locationLoading && locationError ? (
                 <Text style={styles.noLocation}>{locationError}</Text>
@@ -420,12 +422,12 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         )}
 
-        <Text style={styles.labelPincode}>Pincode</Text>
+        <Text style={styles.labelPincode}>{t('dashboard.pincode')}</Text>
         <TextInput
           value={pincode}
           onChangeText={value => setPincode(digitsOnly(value).slice(0, 6))}
           style={[styles.input, styles.pincodeInput]}
-          placeholder="Enter pincode"
+          placeholder={t('details.enterPincode')}
           placeholderTextColor="#A3A3A3"
           keyboardType="number-pad"
           maxLength={6}

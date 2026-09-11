@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ScalePressable from '../../../components/common/ScalePressable';
@@ -44,6 +45,7 @@ export default function SuperAdminNotificationsModal({
   onUnreadCountChange,
   onReviewApprovals,
 }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -61,12 +63,12 @@ export default function SuperAdminNotificationsModal({
       setError(
         loadError instanceof Error
           ? loadError.message
-          : 'Unable to load notifications.',
+          : t('auth.tryAgain'),
       );
     } finally {
       setLoading(false);
     }
-  }, [onUnreadCountChange]);
+  }, [onUnreadCountChange, t]);
 
   useEffect(() => {
     if (visible) void loadNotifications();
@@ -89,8 +91,7 @@ export default function SuperAdminNotificationsModal({
       );
     } catch (markError) {
       Alert.alert(
-        'Could not update notification',
-        markError instanceof Error ? markError.message : 'Please try again.',
+        t('superAdmin.notifications'), markError instanceof Error ? markError.message : t('auth.tryAgain'),
       );
     } finally {
       setWorkingId(null);
@@ -108,8 +109,7 @@ export default function SuperAdminNotificationsModal({
       onUnreadCountChange(0);
     } catch (markError) {
       Alert.alert(
-        'Could not update notifications',
-        markError instanceof Error ? markError.message : 'Please try again.',
+        t('superAdmin.notifications'), markError instanceof Error ? markError.message : t('auth.tryAgain'),
       );
     } finally {
       setWorkingId(null);
@@ -117,10 +117,10 @@ export default function SuperAdminNotificationsModal({
   };
 
   const removeNotification = (notification: AppNotification) => {
-    Alert.alert('Delete notification?', 'This notification will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('superAdmin.deleteNotification'), t('superAdmin.deleteNotificationMessage'), [
+      { text: t('superAdmin.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('superAdmin.delete'),
         style: 'destructive',
         onPress: async () => {
           setWorkingId(notification.id);
@@ -139,10 +139,10 @@ export default function SuperAdminNotificationsModal({
             }
           } catch (removeError) {
             Alert.alert(
-              'Could not delete notification',
+              t('superAdmin.deleteNotification'),
               removeError instanceof Error
                 ? removeError.message
-                : 'Please try again.',
+                : t('auth.tryAgain'),
             );
           } finally {
             setWorkingId(null);
@@ -167,16 +167,16 @@ export default function SuperAdminNotificationsModal({
         <Pressable
           style={StyleSheet.absoluteFill}
           onPress={onClose}
-          accessibilityLabel="Close notifications"
+          accessibilityLabel={t('dashboard.close')}
         />
         <View style={styles.sheet}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Notifications</Text>
+              <Text style={styles.title}>{t('superAdmin.notifications')}</Text>
               <Text style={styles.subtitle}>
                 {unreadCount
-                  ? `${unreadCount} unread`
-                  : 'You are all caught up'}
+                  ? String(unreadCount)
+                  : ''}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -184,14 +184,14 @@ export default function SuperAdminNotificationsModal({
                 style={[styles.markAll, !unreadCount && styles.disabled]}
                 onPress={() => void markAllRead()}
                 disabled={!unreadCount || workingId !== null}
-                accessibilityLabel="Mark all notifications as read"
+                accessibilityLabel={t('superAdmin.markAllRead')}
               >
-                <Text style={styles.markAllText}>Mark all read</Text>
+                <Text style={styles.markAllText}>{t('superAdmin.markAllRead')}</Text>
               </ScalePressable>
               <ScalePressable
                 style={styles.close}
                 onPress={onClose}
-                accessibilityLabel="Close notifications"
+                accessibilityLabel={t('dashboard.close')}
               >
                 <Feather name="x" size={scaleFont(22)} color={colors.primary} />
               </ScalePressable>
@@ -205,13 +205,13 @@ export default function SuperAdminNotificationsModal({
           >
             {onReviewApprovals ? (
               <ScalePressable style={styles.retry} onPress={onReviewApprovals}>
-                <Text style={styles.retryText}>Review agency approvals</Text>
+                <Text style={styles.retryText}>{t('superAdmin.reviewApprovals')}</Text>
               </ScalePressable>
             ) : null}
             {loading ? (
               <View style={styles.state}>
                 <ActivityIndicator color={colors.primary} />
-                <Text style={styles.stateText}>Loading notifications…</Text>
+                <Text style={styles.stateText}>{t('superAdmin.loadingNotifications')}</Text>
               </View>
             ) : null}
             {!loading && error ? (
@@ -226,7 +226,7 @@ export default function SuperAdminNotificationsModal({
                   style={styles.retry}
                   onPress={() => void loadNotifications()}
                 >
-                  <Text style={styles.retryText}>Try again</Text>
+                  <Text style={styles.retryText}>{t('superAdmin.tryAgain')}</Text>
                 </ScalePressable>
               </View>
             ) : null}
@@ -239,9 +239,9 @@ export default function SuperAdminNotificationsModal({
                     color={colors.primary}
                   />
                 </View>
-                <Text style={styles.emptyTitle}>No notifications yet</Text>
+                <Text style={styles.emptyTitle}>{t('superAdmin.noNotifications')}</Text>
                 <Text style={styles.stateText}>
-                  New Agency approval requests will appear here.
+                  {t('superAdmin.approvalHint')}
                 </Text>
               </View>
             ) : null}

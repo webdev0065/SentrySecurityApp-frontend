@@ -17,6 +17,7 @@ type Props = {
   onLogout?: () => void;
   onMyProfile?: () => void;
   identity?: { name: string; company: string; initials: string };
+  hideIdentity?: boolean;
 };
 
 const Row = ({
@@ -26,6 +27,7 @@ const Row = ({
   active,
   danger,
   expanded,
+  showChevron = true,
   disabled,
   onPress,
 }: {
@@ -35,6 +37,7 @@ const Row = ({
   active?: boolean;
   danger?: boolean;
   expanded?: boolean;
+  showChevron?: boolean;
   disabled?: boolean;
   onPress?: () => void;
 }) => {
@@ -53,14 +56,14 @@ const Row = ({
         {right ? <Text style={styles.rightText}>{right}</Text> : null}
         {active ? (
           <Feather name="check" size={scaleFont(19)} color="#2563EB" />
-        ) : !danger ? (
+        ) : !danger && showChevron ? (
           <Feather
             name={
               expanded === undefined
                 ? 'chevron-right'
                 : expanded
-                ? 'chevron-up'
-                : 'chevron-down'
+                ? 'chevron-down'
+                : 'chevron-right'
             }
             size={scaleFont(20)}
             color={colors.primary}
@@ -79,6 +82,7 @@ const AgencyProfileMenu: React.FC<Props> = ({
     company: 'Sentry Security Services',
     initials: 'SR',
   },
+  hideIdentity = false,
 }) => {
   const { i18n, t } = useTranslation();
   const navigation =
@@ -116,7 +120,7 @@ const AgencyProfileMenu: React.FC<Props> = ({
       ? 'Punjabi'
       : 'English';
   const changeLanguage = (code: 'en' | 'hi' | 'pa') => {
-    void i18n.changeLanguage(code);
+    i18n.changeLanguage(code);
     setLanguageOpen(false);
   };
   const selectAppearance = (value: 'Light' | 'Dark' | 'System') => {
@@ -125,17 +129,27 @@ const AgencyProfileMenu: React.FC<Props> = ({
   };
   return (
     <View style={styles.menu}>
-      <View style={styles.identity}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{identity.initials}</Text>
-          <View style={styles.online} />
-        </View>
-        <View>
-          <Text style={styles.name}>{identity.name}</Text>
-          <Text style={styles.company}>{identity.company}</Text>
-        </View>
-      </View>
-      <View style={styles.divider} />
+      {!hideIdentity ? (
+        <>
+          <View style={styles.identity}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{identity.initials}</Text>
+              <View style={styles.online} />
+            </View>
+            <View style={styles.identityText}>
+              <Text style={styles.name} numberOfLines={1}>
+                {identity.name}
+              </Text>
+              {identity.company ? (
+                <Text style={styles.company} numberOfLines={1}>
+                  {identity.company}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          <View style={styles.divider} />
+        </>
+      ) : null}
       <Row icon="user" label={t('dashboard.myProfile')} onPress={onMyProfile} />
       <Row icon="settings" label={t('dashboard.settings')} />
       <Row
@@ -154,6 +168,7 @@ const AgencyProfileMenu: React.FC<Props> = ({
             icon="globe"
             label={t('dashboard.english')}
             active={language === 'English'}
+            showChevron={false}
             onPress={() => changeLanguage('en')}
           />
           <Row
@@ -161,6 +176,7 @@ const AgencyProfileMenu: React.FC<Props> = ({
             label={t('dashboard.hindi')}
             right="हिंदी"
             active={language === 'Hindi'}
+            showChevron={false}
             onPress={() => changeLanguage('hi')}
           />
           <Row
@@ -168,6 +184,7 @@ const AgencyProfileMenu: React.FC<Props> = ({
             label={t('dashboard.punjabi')}
             right="ਪੰਜਾਬੀ"
             active={language === 'Punjabi'}
+            showChevron={false}
             onPress={() => changeLanguage('pa')}
           />
         </View>
@@ -189,18 +206,21 @@ const AgencyProfileMenu: React.FC<Props> = ({
             icon="sun"
             label={t('dashboard.light')}
             active={appearance === 'Light'}
+            showChevron={false}
             onPress={() => selectAppearance('Light')}
           />
           <Row
             icon="moon"
             label={t('dashboard.dark')}
             active={appearance === 'Dark'}
+            showChevron={false}
             onPress={() => selectAppearance('Dark')}
           />
           <Row
             icon="monitor"
             label={t('dashboard.system')}
             active={appearance === 'System'}
+            showChevron={false}
             onPress={() => selectAppearance('System')}
           />
         </View>
@@ -210,9 +230,7 @@ const AgencyProfileMenu: React.FC<Props> = ({
         icon="log-out"
         label={t('dashboard.logOut')}
         danger
-        onPress={() => {
-          void logout();
-        }}
+        onPress={logout}
         disabled={loggingOut}
       />
     </View>
@@ -244,6 +262,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: scaleWidth(11),
     paddingBottom: scaleHeight(8),
   },
+  identityText: { flex: 1 },
   avatar: {
     width: scaleWidth(30),
     height: scaleWidth(30),
@@ -285,23 +304,11 @@ const styles = StyleSheet.create({
   right: { flexDirection: 'row', alignItems: 'center', gap: scaleWidth(5) },
   rightText: { fontSize: scaleFont(10), color: '#666' },
   dropdown: {
-    position: 'absolute',
-    left: scaleWidth(8),
-    right: scaleWidth(8),
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
-    borderRadius: scaleWidth(7),
-    paddingVertical: scaleHeight(3),
-    shadowColor: '#000',
-    shadowOpacity: 0.14,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 9,
-    zIndex: 30,
+    marginHorizontal: scaleWidth(4),
   },
-  languageDropdown: { top: scaleHeight(137) },
-  appearanceDropdown: { top: scaleHeight(167) },
+  languageDropdown: {},
+  appearanceDropdown: {},
 });
 
 export default AgencyProfileMenu;

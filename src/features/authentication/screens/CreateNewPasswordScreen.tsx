@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import LanguageSelector from '../../../components/common/LanguageSelector';
 import type { AuthStackParamList } from '../../../navigation/types';
@@ -23,6 +24,7 @@ import { session } from '../../../services/session';
 type Props = NativeStackScreenProps<AuthStackParamList, 'CreateNewPassword'>;
 
 const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
+  const { t } = useTranslation();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [newPasswordVisible, setNewPasswordVisible] = useState(false);
@@ -32,12 +34,12 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
   const handleResetPassword = async () => {
     const error = passwordError(newPassword);
     if (error) {
-      Alert.alert('Invalid password', error);
+      Alert.alert(t('auth.invalidPassword'), error);
       return;
     }
     if (newPassword !== confirmPassword) {
       Alert.alert(
-        'Passwords do not match',
+        t('auth.passwordsMismatch'),
         'Confirm password must match the new password.',
       );
       return;
@@ -66,7 +68,7 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
-        accessibilityLabel="Go back"
+        accessibilityLabel={t('auth.goBack')}
       >
         <Feather name="arrow-left" size={scaleFont(26)} color="#000000" />
       </TouchableOpacity>
@@ -80,16 +82,16 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       <Text style={styles.heading}>Create New{`\n`}Password</Text>
-      <Text style={styles.subtitle}>Enter your new password</Text>
+      <Text style={styles.subtitle}>{t('auth.newPasswordSubtitle')}</Text>
 
-      <Text style={styles.newPasswordLabel}>New Password</Text>
+      <Text style={styles.newPasswordLabel}>{t('auth.newPassword')}</Text>
       <View style={[styles.inputWrapper, styles.newPasswordInput]}>
         <Feather name="lock" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput
           value={newPassword}
           onChangeText={setNewPassword}
           style={styles.input}
-          placeholder="Enter new password"
+          placeholder={t('auth.enterNewPassword')}
           placeholderTextColor="#A3A3A3"
           secureTextEntry={!newPasswordVisible}
           autoCapitalize="none"
@@ -109,14 +111,14 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.confirmPasswordLabel}>Confirm Password</Text>
+      <Text style={styles.confirmPasswordLabel}>{t('auth.confirmPassword')}</Text>
       <View style={[styles.inputWrapper, styles.confirmPasswordInput]}>
         <Feather name="lock" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           style={styles.input}
-          placeholder="Confirm new password"
+          placeholder={t('auth.confirmNewPassword')}
           placeholderTextColor="#A3A3A3"
           secureTextEntry={!confirmPasswordVisible}
           autoCapitalize="none"
@@ -147,9 +149,9 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
       </TouchableOpacity>
 
       <View style={styles.rememberRow}>
-        <Text style={styles.rememberText}>Remember your password?</Text>
+        <Text style={styles.rememberText}>{t('auth.rememberPassword')}</Text>
         <TouchableOpacity onPress={() => navigation.popToTop()}>
-          <Text style={styles.loginLink}> Log in</Text>
+          <Text style={styles.loginLink}> {t('auth.login')}</Text>
         </TouchableOpacity>
       </View>
     </View>

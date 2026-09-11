@@ -45,12 +45,9 @@ const Onboarding03Screen: React.FC<Props> = ({ navigation }) => {
 
       <LanguageSelector />
 
-      <Text style={styles.heading}>Stay Alert, Respond Faster.</Text>
+      <Text style={styles.heading}>{t('onboarding.step3.title')}</Text>
 
-      <Text style={styles.subtitle}>
-        Get real-time security alerts, incident updates and important
-        notifications.
-      </Text>
+      <Text style={styles.subtitle}>{t('onboarding.step3.subtitle')}</Text>
 
       <View style={styles.dotsRow}>
         <View style={[styles.dot, styles.dotActive]} />

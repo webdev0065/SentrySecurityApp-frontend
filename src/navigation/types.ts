@@ -27,7 +27,7 @@ export type MainStackParamList = {
   AgencyIncidents: { openFileIncident?: boolean } | undefined;
   AgencySites: { openAddSite?: boolean } | undefined;
   AgencyProfile: undefined;
-  AgencyGuards: undefined;
+  AgencyGuards: { openAddGuard?: boolean } | undefined;
 };
 
 // NEW — root navigator that nests the three feature navigators
@@ -36,4 +36,5 @@ export type RootStackParamList = {
   OnboardingFlow: undefined;
   AuthFlow: NavigatorScreenParams<AuthStackParamList> | undefined;
   MainFlow: undefined;
+  ClientFlow: undefined;
 };

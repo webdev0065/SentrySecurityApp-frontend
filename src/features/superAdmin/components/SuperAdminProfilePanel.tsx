@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 
 import ScalePressable from '../../../components/common/ScalePressable';
 import {
@@ -29,6 +30,7 @@ export default function SuperAdminProfilePanel({
 }: {
   onSignOut: () => void;
 }) {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<SuperAdminProfile | null>(null);
   const [form, setForm] = useState<Form>(emptyForm);
   const [loading, setLoading] = useState(true);
@@ -46,16 +48,16 @@ export default function SuperAdminProfilePanel({
       });
     } catch (error) {
       Alert.alert(
-        'Profile',
-        error instanceof Error ? error.message : 'Unable to load your profile.',
+        t('superAdmin.profile'),
+        error instanceof Error ? error.message : t('auth.tryAgain'),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
-    void loadProfile();
+    loadProfile();
   }, [loadProfile]);
 
   const update = (key: keyof Form, value: string) =>
@@ -63,17 +65,17 @@ export default function SuperAdminProfilePanel({
 
   const save = async () => {
     if (form.full_name.trim().length < 2) {
-      Alert.alert('Full name required', 'Enter the Super Admin’s full name.');
+      Alert.alert(t('superAdmin.fullNameRequired'), t('superAdmin.enterFullName'));
       return;
     }
     if (!isValidEmail(form.email)) {
-      Alert.alert('Invalid email', 'Enter a valid email address.');
+      Alert.alert(t('superAdmin.invalidEmail'), t('superAdmin.enterEmail'));
       return;
     }
     if (!isValidIndianMobile(form.mobile_number)) {
       Alert.alert(
-        'Invalid phone number',
-        'Enter a valid 10-digit Indian mobile number.',
+        t('superAdmin.invalidPhone'),
+        t('superAdmin.enterPhone'),
       );
       return;
     }
@@ -91,11 +93,11 @@ export default function SuperAdminProfilePanel({
         ...current,
         email: current.email.trim().toLowerCase(),
       }));
-      Alert.alert('Profile updated', 'Your changes have been saved.');
+      Alert.alert(t('superAdmin.profileUpdated'), t('superAdmin.changesSaved'));
     } catch (error) {
       Alert.alert(
-        'Profile',
-        error instanceof Error ? error.message : 'Unable to save your changes.',
+        t('superAdmin.profile'),
+        error instanceof Error ? error.message : t('auth.tryAgain'),
       );
     } finally {
       setSaving(false);
@@ -108,56 +110,71 @@ export default function SuperAdminProfilePanel({
     return (
       <View style={s.loading}>
         <ActivityIndicator color={colors.primary} />
-        <Text style={s.helper}>Loading profile…</Text>
+        <Text style={s.helper}>{t('superAdmin.loadingProfile')}</Text>
       </View>
     );
   }
 
   return (
-    <View style={s.card}>
-      <View style={s.identity}>
+    <View style={s.container}>
+      <View style={s.profileHeader}>
         <View style={s.avatar}>
           <Text style={s.avatarText}>{initial}</Text>
-          <View style={s.camera}>
+          <ScalePressable
+            style={s.camera}
+            onPress={() =>
+              Alert.alert(
+                t('superAdmin.profilePhoto'),
+                t('superAdmin.photoSoon'),
+              )
+            }
+            accessibilityRole="button"
+            accessibilityLabel={t('superAdmin.profilePhoto')}
+          >
             <Feather name="camera" size={scaleFont(15)} color={colors.white} />
-          </View>
+          </ScalePressable>
         </View>
         <View style={s.identityCopy}>
           <Text style={s.name}>{form.full_name || 'Super Admin'}</Text>
           <Text style={s.accountId}>
-            Account ID: {profile?.account_id || '—'}
+            {t('superAdmin.accountId', { id: profile?.account_id || '—' })}
           </Text>
         </View>
       </View>
       <View style={s.divider} />
-      <Text style={s.section}>YOUR ACCOUNT</Text>
+      <Text style={s.section}>{t('superAdmin.yourAccount')}</Text>
       <Field
-        label="Full name"
+        label={t('superAdmin.fullName')}
+        icon="user"
         value={form.full_name}
         onChangeText={value => update('full_name', value)}
       />
       <Field
-        label="Email"
+        label={t('superAdmin.email')}
+        icon="mail"
         value={form.email}
         keyboardType="email-address"
         autoCapitalize="none"
         onChangeText={value => update('email', value)}
       />
       <Field
-        label="Phone"
+        label={t('superAdmin.mobileNumber')}
+        icon="phone"
         value={form.mobile_number}
         keyboardType="phone-pad"
         onChangeText={value =>
           update('mobile_number', value.replace(/[^\d+]/g, ''))
         }
+        maxLength={13}
       />
       <ScalePressable
         style={s.save}
-        onPress={() => void save()}
+        onPress={save}
         disabled={saving}
         accessibilityRole="button"
+        accessibilityState={{ disabled: saving, busy: saving }}
       >
-        <Text style={s.saveText}>{saving ? 'Saving…' : 'Save changes'}</Text>
+        <Text style={s.saveText}>{saving ? t('superAdmin.saving') : t('superAdmin.saveChanges')}</Text>
       </ScalePressable>
       <ScalePressable
         style={s.signOut}
@@ -169,7 +186,7 @@ export default function SuperAdminProfilePanel({
           size={scaleFont(20)}
           color={colors.status.danger}
         />
-        <Text style={s.signOutText}>Sign out</Text>
+        <Text style={s.signOutText}>{t('superAdmin.signOut')}</Text>
       </ScalePressable>
     </View>
   );
@@ -177,40 +194,45 @@ export default function SuperAdminProfilePanel({
 
 function Field({
   label,
+  icon,
   value,
   onChangeText,
   keyboardType,
   autoCapitalize,
+  maxLength,
 }: {
   label: string;
+  icon: React.ComponentProps<typeof Feather>['name'];
   value: string;
   onChangeText: (value: string) => void;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   autoCapitalize?: 'none';
+  maxLength?: number;
 }) {
   return (
     <View style={s.field}>
       <Text style={s.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        style={s.input}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-      />
+      <View style={s.inputWrap}>
+        <Feather name={icon} size={scaleFont(19)} color={colors.textGray} />
+        <TextInput
+          accessibilityLabel={label}
+          value={value}
+          onChangeText={onChangeText}
+          style={s.input}
+          placeholder={label}
+          placeholderTextColor={colors.textGray}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={false}
+          maxLength={maxLength}
+        />
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: spacing.md,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
+  container: { gap: spacing.md },
   loading: {
     minHeight: 240,
     alignItems: 'center',
@@ -218,39 +240,44 @@ const s = StyleSheet.create({
     gap: spacing.sm,
   },
   helper: { color: colors.textGray, fontSize: scaleFont(typography.sizes.sm) },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
   avatar: {
     width: scaleFont(76),
     height: scaleFont(76),
     borderRadius: scaleFont(38),
-    backgroundColor: colors.light.background,
-    borderWidth: 1,
+    backgroundColor: '#E2DBCA',
+    borderWidth: 2,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: colors.primary,
-    fontSize: scaleFont(typography.sizes.xxl),
+    color: '#B9640A',
+    fontSize: scaleFont(typography.sizes.xxxl),
     fontWeight: typography.weights.bold,
   },
   camera: {
     position: 'absolute',
-    right: -spacing.xs,
-    bottom: 0,
-    width: scaleFont(30),
-    height: scaleFont(30),
-    borderRadius: scaleFont(15),
-    backgroundColor: colors.primary,
+    right: -spacing.sm,
+    bottom: -spacing.xs,
+    width: scaleFont(34),
+    height: scaleFont(34),
+    borderRadius: scaleFont(17),
+    backgroundColor: '#B9640A',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: colors.white,
   },
   identityCopy: { flex: 1, gap: spacing.xs },
   name: {
     color: colors.primary,
-    fontSize: scaleFont(typography.sizes.xl),
+    fontSize: scaleFont(typography.sizes.xxl),
     fontWeight: typography.weights.bold,
   },
   accountId: {
@@ -260,9 +287,11 @@ const s = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
   section: {
     color: colors.primary,
-    fontSize: scaleFont(typography.sizes.sm),
+    fontSize: scaleFont(typography.sizes.lg),
     fontWeight: typography.weights.bold,
-    letterSpacing: 1.2,
+    borderLeftWidth: spacing.xs,
+    borderLeftColor: colors.gold,
+    paddingLeft: spacing.sm,
   },
   field: { gap: spacing.sm },
   label: {
@@ -270,12 +299,20 @@ const s = StyleSheet.create({
     fontSize: scaleFont(typography.sizes.md),
     fontWeight: typography.weights.medium,
   },
-  input: {
+  inputWrap: {
     minHeight: 50,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.primary,
     borderRadius: spacing.sm,
     paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  input: {
+    flex: 1,
+    minHeight: 48,
+    paddingVertical: 0,
     color: colors.primary,
     fontSize: scaleFont(typography.sizes.md),
   },
@@ -285,6 +322,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: spacing.sm,
   },
   saveText: {
     color: colors.white,

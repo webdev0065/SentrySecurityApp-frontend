@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Linking,
   ScrollView,
   StatusBar,
@@ -32,11 +31,19 @@ import AgencyBottomNavigation, {
 import AgencyProfileMenu from '../components/AgencyProfileMenu';
 import AgencyTopNavigation from '../components/AgencyTopNavigation';
 import ScalePressable from '../../../components/common/ScalePressable';
+import AddGuardModal from '../components/AddGuardModal';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencyGuards'>;
 type Filter = 'all' | 'on_duty' | 'off_duty';
 
-const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
+const AgencyGuardsScreen: React.FC<Props> = ({ navigation, route }) => {
+  const [addingGuard, setAddingGuard] = useState(false);
+  useEffect(() => {
+    if (route.params?.openAddGuard) {
+      setAddingGuard(true);
+      navigation.setParams({ openAddGuard: false });
+    }
+  }, [route.params?.openAddGuard, navigation]);
   const { t } = useTranslation();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [guards, setGuards] = useState<AgencyGuard[]>([]);
@@ -44,6 +51,7 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
   const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [selectedGuard, setSelectedGuard] = useState<AgencyGuard | null>(null);
 
   const loadGuards = useCallback(async () => {
     try {
@@ -60,7 +68,7 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [t]);
   useEffect(() => {
-    void loadGuards();
+    loadGuards();
   }, [loadGuards]);
 
   const visibleGuards = useMemo(
@@ -99,12 +107,7 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
       >
         <ScalePressable
           style={s.addButton}
-          onPress={() =>
-            Alert.alert(
-              t('dashboard.addGuard'),
-              t('dashboard.guardAddUnavailable'),
-            )
-          }
+          onPress={() => setAddingGuard(true)}
           accessibilityRole="button"
         >
           <Text style={s.addText}>{t('dashboard.addGuard')}</Text>
@@ -157,7 +160,11 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={s.error}>{loadError}</Text>
           ) : visibleGuards.length ? (
             visibleGuards.map(guard => (
-              <GuardCard key={guard.id} guard={guard} />
+              <GuardCard
+                key={guard.id}
+                guard={guard}
+                onPress={() => setSelectedGuard(guard)}
+              />
             ))
           ) : (
             <Text style={s.message}>{t('dashboard.noGuardsFound')}</Text>
@@ -165,6 +172,26 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </ScrollView>
       <AgencyBottomNavigation activeTab="guards" onTabPress={navigate} />
+      <AddGuardModal
+        visible={addingGuard}
+        onClose={() => setAddingGuard(false)}
+        onCreated={() => {
+          setQuery('');
+          setFilter('all');
+          loadGuards();
+        }}
+      />
+      <AddGuardModal
+        visible={selectedGuard !== null}
+        guard={selectedGuard}
+        onClose={() => setSelectedGuard(null)}
+        onCreated={() => {
+          setSelectedGuard(null);
+          setQuery('');
+          setFilter('all');
+          loadGuards();
+        }}
+      />
       {profileMenuOpen ? (
         <TouchableOpacity
           style={s.backdrop}
@@ -173,13 +200,22 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation }) => {
         />
       ) : null}
       {profileMenuOpen ? (
-        <AgencyProfileMenu onLogout={() => setProfileMenuOpen(false)} />
+        <AgencyProfileMenu
+          onMyProfile={() => {
+            setProfileMenuOpen(false);
+            navigation.navigate('AgencyProfile');
+          }}
+          onLogout={() => setProfileMenuOpen(false)}
+        />
       ) : null}
     </SafeAreaView>
   );
 };
 
-const GuardCard: React.FC<{ guard: AgencyGuard }> = ({ guard }) => {
+const GuardCard: React.FC<{ guard: AgencyGuard; onPress: () => void }> = ({
+  guard,
+  onPress,
+}) => {
   const { t } = useTranslation();
   const initial = guard.full_name.trim().charAt(0).toUpperCase();
   const time =
@@ -188,13 +224,13 @@ const GuardCard: React.FC<{ guard: AgencyGuard }> = ({ guard }) => {
       : t('dashboard.notScheduled');
   const onCall = () => {
     if (guard.mobile_number) {
-      void Linking.openURL(`tel:${guard.mobile_number}`);
+      Linking.openURL(`tel:${guard.mobile_number}`);
     }
   };
   return (
     <ScalePressable
       style={s.card}
-      onPress={() => undefined}
+      onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={guard.full_name}
     >

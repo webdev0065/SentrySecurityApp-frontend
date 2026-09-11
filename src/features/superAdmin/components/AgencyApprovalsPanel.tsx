@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import ScalePressable from '../../../components/common/ScalePressable';
 import {
   superAdminService,
@@ -15,6 +16,7 @@ export default function AgencyApprovalsPanel({
 }: {
   onChanged: () => void;
 }) {
+  const { t } = useTranslation();
   const [agencies, setAgencies] = useState<PendingAgency[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -28,25 +30,25 @@ export default function AgencyApprovalsPanel({
       setError(
         err instanceof Error
           ? err.message
-          : 'Unable to load approval requests.',
+          : t('auth.tryAgain'),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
   useEffect(() => {
     void load();
   }, [load]);
   const review = (agency: PendingAgency, approve: boolean) => {
     Alert.alert(
-      approve ? 'Approve agency?' : 'Reject agency?',
+      approve ? t('superAdmin.approve') : t('superAdmin.reject'),
       approve
         ? `${agency.agency_name} will be able to log in.`
         : `${agency.agency_name} will be removed from pending agencies and will not be able to log in.`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('superAdmin.cancel'), style: 'cancel' },
         {
-          text: approve ? 'Approve' : 'Reject',
+          text: approve ? t('superAdmin.approve') : t('superAdmin.reject'),
           style: approve ? 'default' : 'destructive',
           onPress: async () => {
             setBusy(true);
@@ -59,8 +61,8 @@ export default function AgencyApprovalsPanel({
               onChanged();
             } catch (err) {
               Alert.alert(
-                'Could not update agency',
-                err instanceof Error ? err.message : 'Please try again.',
+                t('superAdmin.agencyApprovals'),
+                err instanceof Error ? err.message : t('auth.tryAgain'),
               );
             } finally {
               setBusy(false);
@@ -72,20 +74,20 @@ export default function AgencyApprovalsPanel({
   };
   return (
     <View style={s.container}>
-      <Text style={s.title}>Agency approvals</Text>
+      <Text style={s.title}>{t('superAdmin.agencyApprovals')}</Text>
       <ScalePressable
         style={s.secondary}
         disabled={loading || busy}
         onPress={() => void load()}
       >
-        <Text style={s.body}>Refresh requests</Text>
+        <Text style={s.body}>{t('superAdmin.refreshRequests')}</Text>
       </ScalePressable>
       {loading ? (
         <ActivityIndicator color={colors.primary} />
       ) : error ? (
         <Text style={s.error}>{error}</Text>
       ) : !agencies.length ? (
-        <Text style={s.body}>No agencies awaiting approval.</Text>
+        <Text style={s.body}>{t('superAdmin.noPending')}</Text>
       ) : (
         agencies.map(agency => (
           <View key={agency.id} style={s.card}>
@@ -110,7 +112,7 @@ export default function AgencyApprovalsPanel({
                 style={[s.button, s.approve]}
                 onPress={() => review(agency, true)}
               >
-                <Text style={s.white}>Approve</Text>
+                <Text style={s.white}>{t('superAdmin.approve')}</Text>
               </ScalePressable>
               <ScalePressable
                 accessibilityRole="button"
@@ -118,7 +120,7 @@ export default function AgencyApprovalsPanel({
                 style={[s.button, s.reject]}
                 onPress={() => review(agency, false)}
               >
-                <Text style={s.error}>Reject</Text>
+                <Text style={s.error}>{t('superAdmin.reject')}</Text>
               </ScalePressable>
             </View>
           </View>

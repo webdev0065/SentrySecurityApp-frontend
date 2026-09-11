@@ -36,15 +36,15 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleLogin = async () => {
     if (!isValidEmail(identifier.trim())) {
       Alert.alert(
-        'Invalid details',
-        'Enter the email address linked to your account.',
+        t('auth.invalidDetails'),
+        t('auth.enterLinkedEmail'),
       );
       return;
     }
 
     const error = passwordError(password);
     if (error) {
-      Alert.alert('Invalid password', error);
+      Alert.alert(t('auth.invalidPassword'), error);
       return;
     }
     try {
@@ -58,15 +58,18 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           index: 0,
           routes: [
             {
-              name:
-                accountType === 'superAdmin' ? 'SuperAdminFlow' : 'MainFlow',
+              name: accountType === 'superAdmin'
+                ? 'SuperAdminFlow'
+                : accountType === 'client'
+                ? 'ClientFlow'
+                : 'MainFlow',
             },
           ],
         });
-    } catch (error) {
+    } catch (loginError) {
       Alert.alert(
-        'Login failed',
-        error instanceof Error ? error.message : 'Please try again.',
+        t('auth.loginFailed'),
+        loginError instanceof Error ? loginError.message : t('auth.tryAgain'),
       );
     } finally {
       setIsSubmitting(false);
@@ -86,7 +89,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       <Text style={styles.heading}>{t('auth.welcomeBack')}</Text>
-      <Text style={styles.subtitle}>Please log in to continue</Text>
+      <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
 
       <View style={styles.authTabs}>
         <TouchableOpacity style={styles.activeTab}>
@@ -100,7 +103,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.identifierLabel}>Email Address</Text>
+      <Text style={styles.identifierLabel}>{t('auth.emailAddress')}</Text>
       <View style={[styles.inputWrapper, styles.identifierInput]}>
         <Feather name="user" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput
@@ -115,14 +118,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         />
       </View>
 
-      <Text style={styles.passwordLabel}>Password</Text>
+      <Text style={styles.passwordLabel}>{t('auth.password')}</Text>
       <View style={[styles.inputWrapper, styles.passwordInput]}>
         <Feather name="lock" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput
           value={password}
           onChangeText={setPassword}
           style={styles.input}
-          placeholder="Enter your password"
+          placeholder={t('auth.enterPassword')}
           placeholderTextColor="#A3A3A3"
           secureTextEntry={!passwordVisible}
           autoCapitalize="none"
@@ -131,7 +134,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.eyeButton}
           onPress={() => setPasswordVisible(current => !current)}
           accessibilityLabel={
-            passwordVisible ? 'Hide password' : 'Show password'
+            passwordVisible ? t('auth.hidePassword') : t('auth.showPassword')
           }
         >
           <Feather
@@ -150,16 +153,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.loginButton, isSubmitting && { opacity: 0.65 }]}
+        style={[styles.loginButton, isSubmitting && styles.disabledButton]}
         onPress={handleLogin}
         disabled={isSubmitting}
       >
         <Text style={styles.loginButtonText}>
-          {isSubmitting ? 'Logging in...' : t('auth.login')}
+          {isSubmitting ? t('auth.loggingIn') : t('auth.login')}
         </Text>
       </TouchableOpacity>
 
-      <Text style={styles.continueText}>Or continue with</Text>
+      <Text style={styles.continueText}>{t('auth.orContinueWith')}</Text>
 
       <View style={styles.socialRow}>
         <TouchableOpacity style={styles.socialButton}>
@@ -182,9 +185,9 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       <View style={styles.signupRow}>
-        <Text style={styles.signupPrompt}>Don't have an account?</Text>
+        <Text style={styles.signupPrompt}>{t('auth.noAccount')}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('CreateAccount')}>
-          <Text style={styles.signupLink}> Sign up</Text>
+          <Text style={styles.signupLink}> {t('auth.signUp')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -315,6 +318,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  disabledButton: { opacity: 0.65 },
   loginButtonText: {
     fontSize: scaleFont(24),
     fontWeight: '700',

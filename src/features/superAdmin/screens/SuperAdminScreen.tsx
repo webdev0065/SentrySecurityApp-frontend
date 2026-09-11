@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
+import { useTranslation } from 'react-i18next';
 import SuperAdminTopNavigation from '../components/SuperAdminTopNavigation';
 import SuperAdminBottomNavigation, {
   AdminTab,
@@ -35,6 +36,7 @@ import { scaleFont } from '../../../styles/dimensions';
 import type { RootStackParamList } from '../../../navigation/types';
 
 export default function SuperAdminScreen() {
+  const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [tab, setTab] = useState<AdminTab>('agencies');
@@ -75,12 +77,12 @@ export default function SuperAdminScreen() {
       );
     } catch (error) {
       setListError(
-        error instanceof Error ? error.message : 'Unable to load agencies.',
+        error instanceof Error ? error.message : t('superAdmin.unableAgencies'),
       );
     } finally {
       setListLoading(false);
     }
-  }, []);
+  }, [t]);
   useFocusEffect(
     useCallback(() => {
       void loadAgencies();
@@ -139,15 +141,15 @@ export default function SuperAdminScreen() {
               <View style={s.dashboard}>
                 <View style={s.summaryGroup}>
                   <View style={s.metrics}>
-                    {['Agencies', 'Guards', 'Clients'].map(label => (
+                    {(['agencies', 'guards', 'clients'] as const).map(label => (
                       <View key={label} style={s.metric}>
                         <Text style={s.value}>
-                          {label === 'Agencies'
+                          {label === 'agencies'
                             ? agencies.filter(item => item.status === 'active')
                                 .length
                             : '—'}
                         </Text>
-                        <Text style={s.metricLabel}>{label}</Text>
+                        <Text style={s.metricLabel}>{t(`superAdmin.${label}`)}</Text>
                       </View>
                     ))}
                   </View>
@@ -160,14 +162,14 @@ export default function SuperAdminScreen() {
                       })
                     }
                     accessibilityRole="button"
-                    accessibilityLabel="Add new agency"
+                    accessibilityLabel={t('superAdmin.addAgency')}
                   >
                     <Feather
                       name="plus"
                       size={scaleFont(20)}
                       color={colors.white}
                     />
-                    <Text style={s.addAgencyText}>Add New Agency</Text>
+                    <Text style={s.addAgencyText}>{t('superAdmin.addAgency')}</Text>
                   </ScalePressable>
                 </View>
                 <View style={s.directoryGroup}>
@@ -182,9 +184,9 @@ export default function SuperAdminScreen() {
                         style={s.searchInput}
                         value={agencyQuery}
                         onChangeText={setAgencyQuery}
-                        placeholder="Search agencies by name"
+                        placeholder={t('superAdmin.searchAgencies')}
                         placeholderTextColor={colors.textGray}
-                        accessibilityLabel="Search agencies by name"
+                        accessibilityLabel={t('superAdmin.searchAgencies')}
                         autoCorrect={false}
                         autoCapitalize="none"
                         returnKeyType="search"
@@ -210,7 +212,7 @@ export default function SuperAdminScreen() {
                                 selected && s.selectedFilterText,
                               ]}
                             >
-                              {status === 'active' ? 'Active' : 'Non-active'}
+                              {status === 'active' ? t('superAdmin.active') : t('superAdmin.inactive')}
                             </Text>
                           </ScalePressable>
                         );
@@ -221,7 +223,7 @@ export default function SuperAdminScreen() {
                     {listLoading ? (
                       <ActivityIndicator
                         color={colors.primary}
-                        accessibilityLabel="Loading agencies"
+                        accessibilityLabel={t('superAdmin.loadingAgencies')}
                       />
                     ) : null}
                     {listError ? <Text style={s.body}>{listError}</Text> : null}
@@ -229,15 +231,15 @@ export default function SuperAdminScreen() {
                       <View style={s.empty}>
                         <Text style={s.emptyTitle}>
                           {agencyQuery.trim()
-                            ? 'No matching agencies'
+                            ? t('superAdmin.noMatching')
                             : showInactive
-                            ? 'No non-active agencies'
-                            : 'No active agencies yet'}
+                            ? t('superAdmin.noInactive')
+                            : t('superAdmin.noActive')}
                         </Text>
                         <Text style={s.body}>
                           {agencyQuery.trim()
-                            ? 'Try another agency name or switch the status filter.'
-                            : 'Approved agencies appear here after Super Admin review.'}
+                            ? t('superAdmin.searchHint')
+                            : t('superAdmin.approvalHint')}
                         </Text>
                       </View>
                     ) : null}
@@ -267,8 +269,8 @@ export default function SuperAdminScreen() {
                                 ]}
                               >
                                 {item.status === 'active'
-                                  ? 'Active'
-                                  : 'Inactive'}
+                                  ? t('superAdmin.active')
+                                  : t('superAdmin.inactive')}
                               </Text>
                             </View>
                             <Text style={s.agencyDetail}>{item.ownerName}</Text>
@@ -303,8 +305,8 @@ export default function SuperAdminScreen() {
                 <View style={s.emptyIcon}>
                   <Feather name="activity" size={28} color={colors.primary} />
                 </View>
-                <Text style={s.emptyTitle}>Your network at a glance</Text>
-                <Text style={s.body}>Live reporting is not available yet.</Text>
+                <Text style={s.emptyTitle}>{t('superAdmin.networkTitle')}</Text>
+                <Text style={s.body}>{t('superAdmin.liveUnavailable')}</Text>
               </View>
             ) : null}
           </>
