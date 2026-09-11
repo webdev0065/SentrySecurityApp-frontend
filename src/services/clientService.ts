@@ -42,6 +42,7 @@ export type CoverageRequestInput = {
   siteLocation: string;
   guardsNeeded: number;
   notes: string;
+  agencyId?: number;
 };
 
 export type AvailableAgency = {

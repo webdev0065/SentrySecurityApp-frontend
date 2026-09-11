@@ -23,45 +23,47 @@ const AgencyTopNavigation: React.FC<Props> = ({
   avatarInitials = 'SR',
 }) => {
   const { t } = useTranslation();
-  return <View style={styles.header}>
-    <Image
-      source={require('../../../assets/images/sentry-logo-horizontal.png')}
-      style={styles.logo}
-      resizeMode="contain"
-    />
-    <View style={styles.actions}>
-      <ScalePressable
-        style={styles.bell}
-        onPress={onNotificationPress}
-        disabled={!onNotificationPress}
-        accessibilityLabel={t('superAdmin.notifications')}
-      >
-        <Feather name="bell" size={scaleFont(25)} color={colors.primary} />
-        {unreadNotificationCount > 0 ? (
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>
-              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-            </Text>
+  return (
+    <View style={styles.header}>
+      <Image
+        source={require('../../../assets/images/sentry-logo-horizontal.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      <View style={styles.actions}>
+        <ScalePressable
+          style={styles.bell}
+          onPress={onNotificationPress}
+          disabled={!onNotificationPress}
+          accessibilityLabel={t('superAdmin.notifications')}
+        >
+          <Feather name="bell" size={scaleFont(25)} color={colors.primary} />
+          {unreadNotificationCount > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+              </Text>
+            </View>
+          ) : null}
+        </ScalePressable>
+        <ScalePressable
+          style={styles.profileTrigger}
+          onPress={onProfilePress}
+          accessibilityLabel={t('dashboard.myProfile')}
+        >
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{avatarInitials}</Text>
+            <View style={styles.online} />
           </View>
-        ) : null}
-      </ScalePressable>
-      <ScalePressable
-        style={styles.profileTrigger}
-        onPress={onProfilePress}
-        accessibilityLabel={t('dashboard.myProfile')}
-      >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{avatarInitials}</Text>
-          <View style={styles.online} />
-        </View>
-        <Feather
-          name={profileMenuOpen ? 'chevron-up' : 'chevron-down'}
-          size={scaleFont(22)}
-          color={colors.primary}
-        />
-      </ScalePressable>
+          <Feather
+            name={profileMenuOpen ? 'chevron-up' : 'chevron-down'}
+            size={scaleFont(22)}
+            color={colors.primary}
+          />
+        </ScalePressable>
+      </View>
     </View>
-  </View>;
+  );
 };
 
 const styles = StyleSheet.create({

@@ -61,9 +61,7 @@ export default function SuperAdminNotificationsModal({
       onUnreadCountChange(data.filter(item => item.status === 'unread').length);
     } catch (loadError) {
       setError(
-        loadError instanceof Error
-          ? loadError.message
-          : t('auth.tryAgain'),
+        loadError instanceof Error ? loadError.message : t('auth.tryAgain'),
       );
     } finally {
       setLoading(false);
@@ -91,7 +89,8 @@ export default function SuperAdminNotificationsModal({
       );
     } catch (markError) {
       Alert.alert(
-        t('superAdmin.notifications'), markError instanceof Error ? markError.message : t('auth.tryAgain'),
+        t('superAdmin.notifications'),
+        markError instanceof Error ? markError.message : t('auth.tryAgain'),
       );
     } finally {
       setWorkingId(null);
@@ -109,7 +108,8 @@ export default function SuperAdminNotificationsModal({
       onUnreadCountChange(0);
     } catch (markError) {
       Alert.alert(
-        t('superAdmin.notifications'), markError instanceof Error ? markError.message : t('auth.tryAgain'),
+        t('superAdmin.notifications'),
+        markError instanceof Error ? markError.message : t('auth.tryAgain'),
       );
     } finally {
       setWorkingId(null);
@@ -117,39 +117,43 @@ export default function SuperAdminNotificationsModal({
   };
 
   const removeNotification = (notification: AppNotification) => {
-    Alert.alert(t('superAdmin.deleteNotification'), t('superAdmin.deleteNotificationMessage'), [
-      { text: t('superAdmin.cancel'), style: 'cancel' },
-      {
-        text: t('superAdmin.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          setWorkingId(notification.id);
-          try {
-            await notificationService.remove(notification.id);
-            setNotifications(current =>
-              current.filter(item => item.id !== notification.id),
-            );
-            if (notification.status === 'unread') {
-              onUnreadCountChange(
-                notifications.filter(
-                  item =>
-                    item.id !== notification.id && item.status === 'unread',
-                ).length,
+    Alert.alert(
+      t('superAdmin.deleteNotification'),
+      t('superAdmin.deleteNotificationMessage'),
+      [
+        { text: t('superAdmin.cancel'), style: 'cancel' },
+        {
+          text: t('superAdmin.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            setWorkingId(notification.id);
+            try {
+              await notificationService.remove(notification.id);
+              setNotifications(current =>
+                current.filter(item => item.id !== notification.id),
               );
+              if (notification.status === 'unread') {
+                onUnreadCountChange(
+                  notifications.filter(
+                    item =>
+                      item.id !== notification.id && item.status === 'unread',
+                  ).length,
+                );
+              }
+            } catch (removeError) {
+              Alert.alert(
+                t('superAdmin.deleteNotification'),
+                removeError instanceof Error
+                  ? removeError.message
+                  : t('auth.tryAgain'),
+              );
+            } finally {
+              setWorkingId(null);
             }
-          } catch (removeError) {
-            Alert.alert(
-              t('superAdmin.deleteNotification'),
-              removeError instanceof Error
-                ? removeError.message
-                : t('auth.tryAgain'),
-            );
-          } finally {
-            setWorkingId(null);
-          }
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   const unreadCount = notifications.filter(
@@ -174,9 +178,7 @@ export default function SuperAdminNotificationsModal({
             <View>
               <Text style={styles.title}>{t('superAdmin.notifications')}</Text>
               <Text style={styles.subtitle}>
-                {unreadCount
-                  ? String(unreadCount)
-                  : ''}
+                {unreadCount ? String(unreadCount) : ''}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -186,7 +188,9 @@ export default function SuperAdminNotificationsModal({
                 disabled={!unreadCount || workingId !== null}
                 accessibilityLabel={t('superAdmin.markAllRead')}
               >
-                <Text style={styles.markAllText}>{t('superAdmin.markAllRead')}</Text>
+                <Text style={styles.markAllText}>
+                  {t('superAdmin.markAllRead')}
+                </Text>
               </ScalePressable>
               <ScalePressable
                 style={styles.close}
@@ -205,13 +209,17 @@ export default function SuperAdminNotificationsModal({
           >
             {onReviewApprovals ? (
               <ScalePressable style={styles.retry} onPress={onReviewApprovals}>
-                <Text style={styles.retryText}>{t('superAdmin.reviewApprovals')}</Text>
+                <Text style={styles.retryText}>
+                  {t('superAdmin.reviewApprovals')}
+                </Text>
               </ScalePressable>
             ) : null}
             {loading ? (
               <View style={styles.state}>
                 <ActivityIndicator color={colors.primary} />
-                <Text style={styles.stateText}>{t('superAdmin.loadingNotifications')}</Text>
+                <Text style={styles.stateText}>
+                  {t('superAdmin.loadingNotifications')}
+                </Text>
               </View>
             ) : null}
             {!loading && error ? (
@@ -226,7 +234,9 @@ export default function SuperAdminNotificationsModal({
                   style={styles.retry}
                   onPress={() => void loadNotifications()}
                 >
-                  <Text style={styles.retryText}>{t('superAdmin.tryAgain')}</Text>
+                  <Text style={styles.retryText}>
+                    {t('superAdmin.tryAgain')}
+                  </Text>
                 </ScalePressable>
               </View>
             ) : null}
@@ -239,7 +249,9 @@ export default function SuperAdminNotificationsModal({
                     color={colors.primary}
                   />
                 </View>
-                <Text style={styles.emptyTitle}>{t('superAdmin.noNotifications')}</Text>
+                <Text style={styles.emptyTitle}>
+                  {t('superAdmin.noNotifications')}
+                </Text>
                 <Text style={styles.stateText}>
                   {t('superAdmin.approvalHint')}
                 </Text>

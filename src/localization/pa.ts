@@ -306,6 +306,8 @@ const pa = {
         'ਇਸ ਜ਼ਿਲ੍ਹੇ ਵਿੱਚ ਅਜੇ ਕੋਈ ਏਜੰਸੀ ਨਹੀਂ ਮਿਲੀ — ਨੇੜਲਾ ਜ਼ਿਲ੍ਹਾ ਅਜ਼ਮਾਓ।',
       agenciesFailed: 'ਇਸ ਜ਼ਿਲ੍ਹੇ ਦੀਆਂ ਏਜੰਸੀਆਂ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀਆਂ।',
       available: 'ਉਪਲਬਧ',
+      selectAgency: 'ਚੁਣੋ',
+      changeAgency: 'ਬਦਲੋ',
       status: {
         pending: 'ਲੰਬਿਤ',
         approved: 'ਮਨਜ਼ੂਰ',

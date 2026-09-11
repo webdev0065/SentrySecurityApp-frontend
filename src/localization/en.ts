@@ -311,6 +311,8 @@ const en = {
         'No agencies found in this district yet — try a nearby district.',
       agenciesFailed: 'Could not load agencies in this district.',
       available: 'Available',
+      selectAgency: 'Select',
+      changeAgency: 'Change',
       status: {
         pending: 'Pending',
         approved: 'Approved',

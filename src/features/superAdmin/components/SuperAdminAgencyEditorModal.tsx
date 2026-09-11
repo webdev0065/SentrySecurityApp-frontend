@@ -268,12 +268,21 @@ export default function SuperAdminAgencyEditorModal({
             keyboardShouldPersistTaps="handled"
           >
             <View style={s.summary}>
-              <Text style={s.summaryTitle}>{t('superAdmin.agencyDetails')}</Text>
+              <Text style={s.summaryTitle}>
+                {t('superAdmin.agencyDetails')}
+              </Text>
               <Summary label={t('auth.fullName')} value={draft.ownerName} />
-              <Summary label={t('details.agencyName')} value={draft.agencyName} />
+              <Summary
+                label={t('details.agencyName')}
+                value={draft.agencyName}
+              />
               <Summary
                 label={t('superAdmin.status')}
-                value={draft.status === 'active' ? t('superAdmin.active') : t('superAdmin.inactive')}
+                value={
+                  draft.status === 'active'
+                    ? t('superAdmin.active')
+                    : t('superAdmin.inactive')
+                }
               />
             </View>
             <Text style={s.section}>{t('superAdmin.accountDetails')}</Text>
@@ -378,7 +387,9 @@ export default function SuperAdminAgencyEditorModal({
                           : s.inactiveStatusText),
                     ]}
                   >
-                    {status === 'active' ? t('superAdmin.active') : t('superAdmin.inactive')}
+                    {status === 'active'
+                      ? t('superAdmin.active')
+                      : t('superAdmin.inactive')}
                   </Text>
                 </ScalePressable>
               ))}
@@ -420,7 +431,9 @@ export default function SuperAdminAgencyEditorModal({
                       }
                     }}
                   >
-                    <Text style={s.removeConfirmText}>{t('superAdmin.removeAgency')}</Text>
+                    <Text style={s.removeConfirmText}>
+                      {t('superAdmin.removeAgency')}
+                    </Text>
                   </ScalePressable>
                   <ScalePressable
                     style={s.cancel}
@@ -482,7 +495,9 @@ export default function SuperAdminAgencyEditorModal({
               keyboardShouldPersistTaps="handled"
             >
               {locationsLoading ? (
-                <Text style={s.pickerMessage}>{t('superAdmin.loadingLocations')}</Text>
+                <Text style={s.pickerMessage}>
+                  {t('superAdmin.loadingLocations')}
+                </Text>
               ) : null}
               {!locationsLoading && locationError ? (
                 <Text style={s.pickerMessage}>{locationError}</Text>

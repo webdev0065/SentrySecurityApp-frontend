@@ -65,7 +65,10 @@ export default function SuperAdminProfilePanel({
 
   const save = async () => {
     if (form.full_name.trim().length < 2) {
-      Alert.alert(t('superAdmin.fullNameRequired'), t('superAdmin.enterFullName'));
+      Alert.alert(
+        t('superAdmin.fullNameRequired'),
+        t('superAdmin.enterFullName'),
+      );
       return;
     }
     if (!isValidEmail(form.email)) {
@@ -73,10 +76,7 @@ export default function SuperAdminProfilePanel({
       return;
     }
     if (!isValidIndianMobile(form.mobile_number)) {
-      Alert.alert(
-        t('superAdmin.invalidPhone'),
-        t('superAdmin.enterPhone'),
-      );
+      Alert.alert(t('superAdmin.invalidPhone'), t('superAdmin.enterPhone'));
       return;
     }
     try {
@@ -174,7 +174,9 @@ export default function SuperAdminProfilePanel({
         accessibilityRole="button"
         accessibilityState={{ disabled: saving, busy: saving }}
       >
-        <Text style={s.saveText}>{saving ? t('superAdmin.saving') : t('superAdmin.saveChanges')}</Text>
+        <Text style={s.saveText}>
+          {saving ? t('superAdmin.saving') : t('superAdmin.saveChanges')}
+        </Text>
       </ScalePressable>
       <ScalePressable
         style={s.signOut}

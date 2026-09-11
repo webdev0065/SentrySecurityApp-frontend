@@ -54,6 +54,7 @@ export default function ClientCoverageRequests() {
   const [agencies, setAgencies] = useState<AvailableAgency[]>([]);
   const [agenciesLoading, setAgenciesLoading] = useState(false);
   const [agenciesError, setAgenciesError] = useState('');
+  const [selectedAgencyId, setSelectedAgencyId] = useState<number | null>(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -82,6 +83,7 @@ export default function ClientCoverageRequests() {
     let active = true;
     if (!form.district) {
       setAgencies([]);
+      setSelectedAgencyId(null);
       setAgenciesError('');
       return () => {
         active = false;
@@ -154,6 +156,7 @@ export default function ClientCoverageRequests() {
   );
   const select = (option: IndiaLocationOption) => {
     if (picker === 'state') {
+      setSelectedAgencyId(null);
       setForm(current => ({
         ...current,
         state: option.name,
@@ -164,6 +167,7 @@ export default function ClientCoverageRequests() {
       setCities([]);
     }
     if (picker === 'district') {
+      setSelectedAgencyId(null);
       setForm(current => ({ ...current, district: option.name, city: '' }));
       setCities([]);
     }
@@ -176,7 +180,8 @@ export default function ClientCoverageRequests() {
       !form.state ||
       !form.district ||
       !form.city ||
-      !form.siteLocation.trim()
+      !form.siteLocation.trim() ||
+      (agencies.length > 0 && !selectedAgencyId)
     ) {
       setError(t('coverageRequest.required'));
       return;
@@ -190,9 +195,11 @@ export default function ClientCoverageRequests() {
         siteLocation: form.siteLocation.trim(),
         notes: form.notes.trim(),
         guardsNeeded,
+        ...(selectedAgencyId ? { agencyId: selectedAgencyId } : {}),
       });
       setForm(emptyForm);
       setGuardsNeeded(1);
+      setSelectedAgencyId(null);
       await loadRequests();
       Alert.alert(
         t('coverageRequest.sentTitle'),
@@ -249,30 +256,52 @@ export default function ClientCoverageRequests() {
             ) : agenciesError ? (
               <Text style={s.error}>{agenciesError}</Text>
             ) : agencies.length ? (
-              agencies.map(agency => (
-                <View key={agency.id} style={s.agencyCard}>
-                  <View style={s.agencyIcon}>
-                    <Feather
-                      name="briefcase"
-                      size={scaleFont(20)}
-                      color={colors.gold}
-                    />
-                  </View>
-                  <View style={s.agencyDetails}>
-                    <Text style={s.agencyName}>{agency.agency_name}</Text>
-                    <Text style={s.muted}>
-                      {[agency.city, agency.district, agency.state]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </Text>
-                  </View>
-                  <View style={s.availableBadge}>
-                    <Text style={s.availableText}>
-                      {t('coverageRequest.available')}
-                    </Text>
-                  </View>
-                </View>
-              ))
+              agencies
+                .filter(
+                  agency =>
+                    selectedAgencyId === null || agency.id === selectedAgencyId,
+                )
+                .map(agency => (
+                  <ScalePressable
+                    key={agency.id}
+                    style={[
+                      s.agencyCard,
+                      agency.id === selectedAgencyId && s.selectedAgencyCard,
+                    ]}
+                    onPress={() =>
+                      setSelectedAgencyId(current =>
+                        current === agency.id ? null : agency.id,
+                      )
+                    }
+                    accessibilityRole="radio"
+                    accessibilityState={{
+                      selected: agency.id === selectedAgencyId,
+                    }}
+                  >
+                    <View style={s.agencyIcon}>
+                      <Feather
+                        name="briefcase"
+                        size={scaleFont(20)}
+                        color={colors.gold}
+                      />
+                    </View>
+                    <View style={s.agencyDetails}>
+                      <Text style={s.agencyName}>{agency.agency_name}</Text>
+                      <Text style={s.muted}>
+                        {[agency.city, agency.district, agency.state]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </Text>
+                    </View>
+                    <View style={s.availableBadge}>
+                      <Text style={s.availableText}>
+                        {agency.id === selectedAgencyId
+                          ? t('coverageRequest.changeAgency')
+                          : t('coverageRequest.selectAgency')}
+                      </Text>
+                    </View>
+                  </ScalePressable>
+                ))
             ) : (
               <Text style={s.muted}>
                 {t('coverageRequest.noAgenciesInArea')}
@@ -535,6 +564,9 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  selectedAgencyCard: {
+    borderColor: colors.status.success,
   },
   agencyIcon: {
     width: 42,

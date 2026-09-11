@@ -27,11 +27,7 @@ export default function AgencyApprovalsPanel({
     try {
       setAgencies(await superAdminService.getPendingAgencies());
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : t('auth.tryAgain'),
-      );
+      setError(err instanceof Error ? err.message : t('auth.tryAgain'));
     } finally {
       setLoading(false);
     }

@@ -307,6 +307,8 @@ const hi = {
         'इस जिले में अभी कोई एजेंसी नहीं मिली — पास का जिला आज़माएं।',
       agenciesFailed: 'इस जिले की एजेंसियां लोड नहीं हो सकीं।',
       available: 'उपलब्ध',
+      selectAgency: 'चुनें',
+      changeAgency: 'बदलें',
       status: {
         pending: 'लंबित',
         approved: 'अनुमोदित',

@@ -149,7 +149,9 @@ export default function SuperAdminScreen() {
                                 .length
                             : '—'}
                         </Text>
-                        <Text style={s.metricLabel}>{t(`superAdmin.${label}`)}</Text>
+                        <Text style={s.metricLabel}>
+                          {t(`superAdmin.${label}`)}
+                        </Text>
                       </View>
                     ))}
                   </View>
@@ -169,7 +171,9 @@ export default function SuperAdminScreen() {
                       size={scaleFont(20)}
                       color={colors.white}
                     />
-                    <Text style={s.addAgencyText}>{t('superAdmin.addAgency')}</Text>
+                    <Text style={s.addAgencyText}>
+                      {t('superAdmin.addAgency')}
+                    </Text>
                   </ScalePressable>
                 </View>
                 <View style={s.directoryGroup}>
@@ -212,7 +216,9 @@ export default function SuperAdminScreen() {
                                 selected && s.selectedFilterText,
                               ]}
                             >
-                              {status === 'active' ? t('superAdmin.active') : t('superAdmin.inactive')}
+                              {status === 'active'
+                                ? t('superAdmin.active')
+                                : t('superAdmin.inactive')}
                             </Text>
                           </ScalePressable>
                         );

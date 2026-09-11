@@ -26,7 +26,8 @@ export const authService = {
       // The current unified API authenticates both roles with an email address.
       body: { email, password },
     });
-    if (!response.token) throw new Error(response.message || 'Login could not be completed.');
+    if (!response.token)
+      throw new Error(response.message || 'Login could not be completed.');
     await session.setToken(response.token);
     return response;
   },
@@ -57,7 +58,8 @@ export const authService = {
       },
     });
     if (origin !== 'superAdmin') {
-      if (response.token && response.approval_status !== 'pending') await session.setToken(response.token);
+      if (response.token && response.approval_status !== 'pending')
+        await session.setToken(response.token);
       else await session.clearToken();
     }
     registrationDraft.clear();
