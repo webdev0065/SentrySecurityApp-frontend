@@ -106,6 +106,10 @@ export default function ClientPortalScreen() {
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
         onNotificationOpen={() => setProfileMenuOpen(false)}
+        avatarInitials={(details?.full_name || 'C')
+          .trim()
+          .charAt(0)
+          .toUpperCase()}
       />
       {informationPage && tab === 'home' ? (
         <View style={s.informationContent}>
@@ -196,9 +200,12 @@ export default function ClientPortalScreen() {
       {profileMenuOpen ? (
         <AgencyProfileMenu
           identity={{
-            name: t('client.profile'),
+            name: details?.full_name || t('client.profile'),
             company: details?.site_name || '',
-            initials: 'C',
+            initials: (details?.full_name || 'C')
+              .trim()
+              .charAt(0)
+              .toUpperCase(),
           }}
           onMyProfile={() => {
             setTab('profile');

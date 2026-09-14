@@ -23,6 +23,9 @@ export default function ClientProfilePanel({
 }) {
   const { t } = useTranslation();
   const [form, setForm] = useState({
+    fullName: details.full_name || '',
+    mobileNumber: details.mobile_number || '',
+    email: details.email || '',
     siteName: details.site_name || '',
     siteAddress: details.site_address || '',
     city: details.city || '',
@@ -35,6 +38,9 @@ export default function ClientProfilePanel({
 
   useEffect(() => {
     setForm({
+      fullName: details.full_name || '',
+      mobileNumber: details.mobile_number || '',
+      email: details.email || '',
       siteName: details.site_name || '',
       siteAddress: details.site_address || '',
       city: details.city || '',
@@ -50,13 +56,24 @@ export default function ClientProfilePanel({
 
   const save = async () => {
     const clean = {
+      fullName: form.fullName.trim(),
+      mobileNumber: form.mobileNumber.trim(),
+      email: form.email.trim().toLowerCase(),
       siteName: form.siteName.trim(),
       siteAddress: form.siteAddress.trim(),
       city: form.city.trim(),
       state: form.state.trim(),
       pincode: form.pincode.trim(),
     };
-    if (!clean.siteName || !clean.siteAddress || !clean.city || !clean.state) {
+    if (
+      !clean.fullName ||
+      !clean.mobileNumber ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean.email) ||
+      !clean.siteName ||
+      !clean.siteAddress ||
+      !clean.city ||
+      !clean.state
+    ) {
       setIsError(true);
       setMessage(t('dashboard.missingDetails'));
       return;
@@ -85,17 +102,18 @@ export default function ClientProfilePanel({
       setSaving(false);
     }
   };
+  const initial = (form.fullName || 'C').trim().charAt(0).toUpperCase();
   return (
     <View style={s.container}>
       <View style={s.profileHeader}>
         <View style={s.avatar}>
-          <Text style={s.avatarText}>C</Text>
+          <Text style={s.avatarText}>{initial}</Text>
           <View style={s.camera}>
             <Feather name="camera" size={scaleFont(15)} color={colors.white} />
           </View>
         </View>
         <View style={s.identity}>
-          <Text style={s.name}>{t('client.profile')}</Text>
+          <Text style={s.name}>{form.fullName}</Text>
           <Text style={s.accountId}>
             {t('superAdmin.accountId', { id: details.user_id })}
           </Text>
@@ -103,6 +121,26 @@ export default function ClientProfilePanel({
       </View>
       <View style={s.divider} />
       <Text style={s.section}>{t('superAdmin.yourAccount')}</Text>
+      <EditableField
+        label={t('dashboard.fullName')}
+        icon="user"
+        value={form.fullName}
+        onChangeText={value => update('fullName', value)}
+      />
+      <EditableField
+        label={t('dashboard.mobileNumber')}
+        icon="phone"
+        value={form.mobileNumber}
+        onChangeText={value => update('mobileNumber', value)}
+        keyboardType="phone-pad"
+      />
+      <EditableField
+        label={t('dashboard.emailAddress')}
+        icon="mail"
+        value={form.email}
+        onChangeText={value => update('email', value)}
+        keyboardType="email-address"
+      />
       <EditableField
         label={t('details.siteName')}
         icon="map"

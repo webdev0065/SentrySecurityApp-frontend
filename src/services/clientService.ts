@@ -10,6 +10,9 @@ export type ClientDetails = {
   state: string;
   pincode: string;
   avatar_url?: string | null;
+  full_name: string;
+  email: string;
+  mobile_number: string;
 };
 
 export type UpdateClientDetailsInput = {
@@ -19,6 +22,9 @@ export type UpdateClientDetailsInput = {
   city: string;
   state: string;
   pincode: string;
+  fullName?: string;
+  email?: string;
+  mobileNumber?: string;
 };
 
 export type CoverageRequest = {

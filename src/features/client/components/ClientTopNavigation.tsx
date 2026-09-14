@@ -5,17 +5,19 @@ export default function ClientTopNavigation({
   profileMenuOpen,
   onProfilePress,
   onNotificationOpen,
+  avatarInitials,
 }: {
   profileMenuOpen: boolean;
   onProfilePress: () => void;
   onNotificationOpen?: () => void;
+  avatarInitials?: string;
 }) {
   return (
     <AgencyTopNavigation
       profileMenuOpen={profileMenuOpen}
       onProfilePress={onProfilePress}
       onBeforeOpenNotifications={onNotificationOpen}
-      avatarInitials="CL"
+      avatarInitials={avatarInitials || 'C'}
     />
   );
 }
