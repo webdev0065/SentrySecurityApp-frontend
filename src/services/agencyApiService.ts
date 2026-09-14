@@ -9,6 +9,9 @@ export type AgencySite = {
   coverage_plan?: 'day_shift' | 'night_watch' | '24x7';
   start_time?: string;
   end_time?: string;
+  source_coverage_request_id?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 export type AgencyIncident = {
   id: number;
@@ -17,6 +20,7 @@ export type AgencyIncident = {
   notes: string;
   site_name: string;
   created_at: string;
+  status?: string;
 };
 export type AgencyGuard = {
   id: number;
@@ -40,6 +44,20 @@ export type AgencyGuard = {
   age?: number | null;
   gender?: 'male' | 'female' | 'other' | null;
 };
+export type AgencyCoverageRequest = {
+  id: number;
+  event_name: string;
+  company_name: string;
+  state: string;
+  district: string;
+  city: string;
+  site_location: string;
+  guards_needed: number;
+  notes?: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'assigned' | 'completed';
+  assigned_guard_ids?: number[] | null;
+  created_at: string;
+};
 type ApiList<T> = { success: boolean; data: T[] };
 
 export const agencyApiService = {
@@ -51,6 +69,18 @@ export const agencyApiService = {
     ).data,
   createSite: (body: object) =>
     apiRequest('/agency/sites', { method: 'POST', body, authenticated: true }),
+  updateSite: async (id: number, body: object) =>
+    (
+      await apiRequest<{ success: boolean; data: AgencySite }>(
+        `/agency/sites/${id}`,
+        { method: 'PUT', body, authenticated: true },
+      )
+    ).data,
+  removeSite: (id: number) =>
+    apiRequest<{ success: boolean; message: string }>(`/agency/sites/${id}`, {
+      method: 'DELETE',
+      authenticated: true,
+    }),
   getGuards: async () =>
     (
       await apiRequest<ApiList<AgencyGuard>>('/agency/guards', {
@@ -77,6 +107,30 @@ export const agencyApiService = {
       method: 'DELETE',
       authenticated: true,
     }),
+  getCoverageRequests: async () =>
+    (
+      await apiRequest<ApiList<AgencyCoverageRequest>>(
+        '/agency/coverage-requests',
+        { authenticated: true },
+      )
+    ).data,
+  getCoverageRequest: async (id: number) =>
+    (
+      await apiRequest<{ success: boolean; data: AgencyCoverageRequest }>(
+        `/agency/coverage-requests/${id}`,
+        { authenticated: true },
+      )
+    ).data,
+  updateCoverageRequest: async (
+    id: number,
+    body: { status: AgencyCoverageRequest['status']; guardIds?: number[] },
+  ) =>
+    (
+      await apiRequest<{ success: boolean; data: AgencyCoverageRequest }>(
+        `/agency/coverage-requests/${id}`,
+        { method: 'PUT', body, authenticated: true },
+      )
+    ).data,
   getIncidents: async () =>
     (
       await apiRequest<ApiList<AgencyIncident>>('/agency/incidents', {

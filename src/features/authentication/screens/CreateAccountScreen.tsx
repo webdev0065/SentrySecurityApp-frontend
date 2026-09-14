@@ -67,9 +67,7 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     if (!isValidIndianMobile(mobile)) {
-      Alert.alert(
-        t('auth.invalidMobile'), t('auth.enterValidMobile'),
-      );
+      Alert.alert(t('auth.invalidMobile'), t('auth.enterValidMobile'));
       return;
     }
     if (!isValidEmail(email)) {
@@ -82,9 +80,7 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert(
-        t('auth.passwordsMismatch'), t('auth.confirmMustMatch'),
-      );
+      Alert.alert(t('auth.passwordsMismatch'), t('auth.confirmMustMatch'));
       return;
     }
     try {
@@ -104,7 +100,8 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
       );
     } catch (error) {
       Alert.alert(
-        t('auth.accountFailed'), error instanceof Error ? error.message : t('auth.tryAgain'),
+        t('auth.accountFailed'),
+        error instanceof Error ? error.message : t('auth.tryAgain'),
       );
     } finally {
       setIsSubmitting(false);
@@ -151,7 +148,9 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
               <Text style={styles.inactiveTabText}>{t('auth.login')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.activeTab}>
-              <Text style={styles.activeTabText}>{t('auth.createAccount')}</Text>
+              <Text style={styles.activeTabText}>
+                {t('auth.createAccount')}
+              </Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -196,7 +195,9 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
           placeholder={t('auth.enterPassword')}
         />
 
-        <Text style={styles.confirmPasswordLabel}>{t('auth.confirmPassword')}</Text>
+        <Text style={styles.confirmPasswordLabel}>
+          {t('auth.confirmPassword')}
+        </Text>
         <PasswordInput
           style={styles.confirmPasswordInput}
           value={confirmPassword}
@@ -209,7 +210,9 @@ const CreateAccountScreen: React.FC<Props> = ({ navigation, route }) => {
         />
 
         <Text style={styles.accountTypeLabel}>
-          {forceAccountType ? t('auth.accountType') : t('auth.chooseAccountType')}
+          {forceAccountType
+            ? t('auth.accountType')
+            : t('auth.chooseAccountType')}
         </Text>
         <View style={styles.accountTypeRow}>
           <AccountTypeCard

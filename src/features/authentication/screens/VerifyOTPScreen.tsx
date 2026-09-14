@@ -80,10 +80,7 @@ const VerifyOTPScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleVerifyOtp = async () => {
     if (!isCompleteOtp(otp)) {
-      Alert.alert(
-        t('auth.invalidOtp'),
-        t('auth.completeOtp'),
-      );
+      Alert.alert(t('auth.invalidOtp'), t('auth.completeOtp'));
       return;
     }
     try {

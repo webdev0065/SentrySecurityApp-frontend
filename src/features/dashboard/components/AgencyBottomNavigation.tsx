@@ -48,14 +48,16 @@ const AgencyBottomNavigation: React.FC<Props> = ({ activeTab, onTabPress }) => {
             accessibilityState={{ selected: active }}
             accessibilityLabel={t(`dashboard.${tab.labelKey}`)}
           >
-            <Feather
-              name={tab.icon}
-              size={scaleFont(28)}
-              color={active ? '#2563EB' : colors.primary}
-            />
-            <Text style={[styles.label, active && styles.activeLabel]}>
-              {t(`dashboard.${tab.labelKey}`)}
-            </Text>
+            <View pointerEvents="none" style={styles.tabContent}>
+              <Feather
+                name={tab.icon}
+                size={scaleFont(28)}
+                color={active ? '#2563EB' : colors.primary}
+              />
+              <Text style={[styles.label, active && styles.activeLabel]}>
+                {t(`dashboard.${tab.labelKey}`)}
+              </Text>
+            </View>
           </ScalePressable>
         );
       })}
@@ -76,10 +78,16 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    height: '100%',
+    minHeight: scaleHeight(48),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: scaleWidth(8),
+  },
+  tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
     gap: scaleHeight(2),
-    borderRadius: scaleWidth(8),
   },
   label: { fontWeight: '600', color: colors.primary, fontSize: scaleFont(11) },
   activeLabel: { color: '#2563EB' },

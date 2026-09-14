@@ -79,10 +79,7 @@ const VerifyMobileScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleVerifyMobile = async () => {
     if (!isCompleteOtp(otp)) {
-      Alert.alert(
-        t('auth.invalidOtp'),
-        t('auth.completeOtp'),
-      );
+      Alert.alert(t('auth.invalidOtp'), t('auth.completeOtp'));
       return;
     }
     try {

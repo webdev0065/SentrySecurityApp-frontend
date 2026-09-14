@@ -35,10 +35,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!isValidEmail(identifier.trim())) {
-      Alert.alert(
-        t('auth.invalidDetails'),
-        t('auth.enterLinkedEmail'),
-      );
+      Alert.alert(t('auth.invalidDetails'), t('auth.enterLinkedEmail'));
       return;
     }
 
@@ -58,11 +55,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           index: 0,
           routes: [
             {
-              name: accountType === 'superAdmin'
-                ? 'SuperAdminFlow'
-                : accountType === 'client'
-                ? 'ClientFlow'
-                : 'MainFlow',
+              name:
+                accountType === 'superAdmin'
+                  ? 'SuperAdminFlow'
+                  : accountType === 'client'
+                  ? 'ClientFlow'
+                  : 'MainFlow',
             },
           ],
         });

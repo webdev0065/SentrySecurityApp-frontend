@@ -127,7 +127,10 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
       !form.city.trim() ||
       !form.state.trim() ||
       !form.district?.trim() ||
-      !form.pincode.trim()
+      !form.pincode.trim() ||
+      !form.full_name.trim() ||
+      !form.email.trim() ||
+      !form.mobile_number.trim()
     ) {
       Alert.alert(
         t('dashboard.missingDetails'),
@@ -135,9 +138,21 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
       );
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      Alert.alert(t('dashboard.profile'), t('auth.invalidEmail'));
+      return;
+    }
+    if (!/^(?:\+91)?[6-9]\d{9}$/.test(form.mobile_number.trim())) {
+      Alert.alert(t('dashboard.profile'), t('auth.invalidMobile'));
+      return;
+    }
+    if (!/^[1-9]\d{5}$/.test(form.pincode.trim())) {
+      Alert.alert(t('dashboard.profile'), t('details.enterValidPincode'));
+      return;
+    }
     try {
       setSaving(true);
-      await accountService.updateAgencyProfile({
+      const response = await accountService.updateAgencyProfile({
         agencyName: form.agency_name.trim(),
         businessType: form.business_type.trim(),
         gstNumber: form.gst_number?.trim(),
@@ -146,7 +161,11 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
         state: form.state.trim(),
         district: form.district?.trim(),
         pincode: form.pincode.trim(),
+        fullName: form.full_name.trim(),
+        email: form.email.trim().toLowerCase(),
+        mobileNumber: form.mobile_number.trim(),
       });
+      setForm({ ...emptyForm, ...response.data });
       Alert.alert(t('dashboard.profile'), t('dashboard.changesSaved'));
     } catch (error) {
       Alert.alert(
@@ -252,6 +271,16 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
       <AgencyTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
+        onNotificationSelect={notification => {
+          if (
+            notification.reference_type === 'coverage_request' &&
+            notification.reference_id
+          ) {
+            navigation.navigate('AgencySites', {
+              openRequestId: notification.reference_id,
+            });
+          }
+        }}
       />
       <ScrollView
         contentContainerStyle={s.content}

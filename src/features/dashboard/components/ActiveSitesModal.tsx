@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -30,11 +30,13 @@ const ActiveSitesModal: React.FC<Props> = ({ visible, onClose }) => {
   const [error, setError] = useState('');
   const [selectedSite, setSelectedSite] = useState<AgencySite | null>(null);
 
-  useEffect(() => {
-    if (!visible) return;
+  const load = useCallback(() => {
     setLoading(true);
     setError('');
-    Promise.all([agencyApiService.getSites(), agencyApiService.getGuards()])
+    return Promise.all([
+      agencyApiService.getSites(),
+      agencyApiService.getGuards(),
+    ])
       .then(([siteItems, guardItems]) => {
         setSites(siteItems);
         setGuards(guardItems);
@@ -47,7 +49,12 @@ const ActiveSitesModal: React.FC<Props> = ({ visible, onClose }) => {
         ),
       )
       .finally(() => setLoading(false));
-  }, [visible, t]);
+  }, [t]);
+
+  useEffect(() => {
+    if (!visible) return;
+    load();
+  }, [load, visible]);
 
   return (
     <Modal
@@ -103,6 +110,10 @@ const ActiveSitesModal: React.FC<Props> = ({ visible, onClose }) => {
           visible={selectedSite !== null}
           site={selectedSite}
           onClose={() => setSelectedSite(null)}
+          onChanged={() => {
+            setSelectedSite(null);
+            load();
+          }}
         />
       </View>
     </Modal>

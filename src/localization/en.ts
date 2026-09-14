@@ -1,5 +1,58 @@
 const en = {
   translation: {
+    clientAgency: {
+      guardsOnSite: 'GUARDS ON SITE',
+      loadingGuards: 'Loading assigned guards…',
+      loadFailed: 'Unable to load assigned guards.',
+      rateAgency: 'Rate Your Agency',
+      feedbackPlaceholder: 'Share your experience with this agency…',
+      guardFeedbackPlaceholder: 'Share feedback about this guard…',
+      saveRating: 'Save rating',
+      ratingSaved: 'Rating saved',
+      thankYou: 'Thank you for your feedback.',
+      unableToRate: 'Unable to save rating',
+      noGuards: 'No guards assigned yet',
+      noGuardsHint:
+        'Assigned guards will appear here once the agency completes the assignment.',
+      onSite: 'ON SITE',
+      overallRating: 'Overall rating',
+      rate: 'Rate',
+    },
+    coverageManagement: {
+      requests: 'Client Requests',
+      loading: 'Loading client requests…',
+      loadFailed: 'Unable to load client requests.',
+      noRequests: 'No client requests',
+      noRequestsHint: 'New coverage requests will appear here.',
+      requestDetails: 'Request details',
+      client: 'Client',
+      event: 'Site or event',
+      location: 'Location',
+      guardsNeeded: 'Guards needed',
+      guardsCount: '{{count}} guard requested',
+      guardsCount_other: '{{count}} guards requested',
+      notes: 'Notes',
+      noNotes: 'No notes provided',
+      status: 'Status',
+      assignGuards: 'Assign guards',
+      assignLimit: 'Select up to {{count}} available guards.',
+      selectGuardFirst: 'Select at least one available guard.',
+      noAvailableGuards: 'No off-duty guards are currently available.',
+      approve: 'Approve',
+      reject: 'Reject',
+      assignSelected: 'Assign selected guards',
+      markCompleted: 'Mark completed',
+      requestUpdated: 'Request updated',
+      requestUpdatedHint: 'The client request status has been saved.',
+      unableToUpdate: 'Unable to update request',
+      statuses: {
+        pending: 'Pending',
+        approved: 'Approved',
+        rejected: 'Rejected',
+        assigned: 'Assigned',
+        completed: 'Completed',
+      },
+    },
     addGuardForm: {
       title: 'Add Guard',
       fullName: 'Full name',
@@ -284,6 +337,60 @@ const en = {
       noInvoicesHint: 'Your invoices will appear here when available.',
       noAlerts: 'No alerts',
       noAlertsHint: 'Security and account alerts will appear here.',
+      noAgencyYet: 'No Agency Yet',
+      noAgencyYetHint:
+        "You haven't hired an agency yet. Use the Request tab to find and send a coverage request.",
+      helpfulInformation: 'HELPFUL INFORMATION',
+      howItWorks: 'How it works?',
+      howItWorksHint: 'Learn how to request and manage coverage',
+      whyHireAgency: 'Why hire an agency?',
+      whyHireAgencyHint: 'Get professional and reliable security',
+      needHelp: 'Need help?',
+      needHelpHint: 'Contact our support team',
+      securityQuote: '“Safer spaces, stronger business.”',
+      welcomeBack: 'Welcome Back!',
+      securityOverview: "Here's an overview of your security coverage.",
+      securityPartner: 'Your security partner',
+      activeCoverage: 'ACTIVE COVERAGE',
+      guardsAssigned: '{{count}} guard assigned',
+      guardsAssigned_other: '{{count}} guards assigned',
+      active: 'Active',
+    },
+    clientInfo: {
+      back: 'Back',
+      howItWorksIntro: 'Requesting professional security coverage is simple.',
+      whyHireIntro:
+        'The benefits of working with a professional security agency.',
+      chooseLocation: 'Choose your location',
+      chooseLocationBody:
+        'Select the state, district, city, and exact site where coverage is needed.',
+      selectAgency: 'Review and select an agency',
+      selectAgencyBody:
+        'Compare approved agencies available in your district and review their details.',
+      sendRequest: 'Send your request',
+      sendRequestBody:
+        'Enter the guards needed and your requirements, then submit the request.',
+      trackCoverage: 'Track your coverage',
+      trackCoverageBody:
+        'Follow the request status and view active coverage from your Home screen.',
+      verifiedSecurity: 'Verified security providers',
+      verifiedSecurityBody:
+        'Choose from agencies reviewed and approved for the platform.',
+      trainedGuards: 'Professionally managed guards',
+      trainedGuardsBody:
+        'Agencies manage guard assignments, shifts, and site requirements.',
+      reliableCoverage: 'Reliable coverage',
+      reliableCoverageBody:
+        'Request the number of guards your site or event requires.',
+      clearRecords: 'Clear digital records',
+      clearRecordsBody:
+        'Keep requests, coverage information, invoices, and alerts organized.',
+      requestNote: 'You can begin at any time from the Request tab.',
+      partnerNote:
+        'Review agency details before confirming your coverage request.',
+      supportSubject: 'Sentry Security App Support',
+      emailUnavailable:
+        'No email application is available. Contact helpdesk@gmail.com.',
     },
     coverageRequest: {
       location: 'YOUR LOCATION',
@@ -313,6 +420,11 @@ const en = {
       available: 'Available',
       selectAgency: 'Select',
       changeAgency: 'Change',
+      agencyDetails: 'Agency details',
+      agencyDetailsFailed: 'Could not load agency details.',
+      loadingAgencyDetails: 'Loading agency details…',
+      serviceArea: 'Service area',
+      selectThisAgency: 'Select Agency',
       status: {
         pending: 'Pending',
         approved: 'Approved',
@@ -323,6 +435,7 @@ const en = {
       },
     },
     dashboard: {
+      noNotificationsHint: 'Your notifications will appear here.',
       dashboard: 'Dashboard',
       overview: 'Overview',
       guard: 'Guard',
@@ -463,6 +576,12 @@ const en = {
       directionsUnavailable:
         'Directions will be available when map integration is connected.',
       removeSite: 'Remove site',
+      removeSiteConfirm:
+        'Remove this site? Existing guard assignments may be affected.',
+      siteUpdated: 'Site details have been updated.',
+      siteUpdateFailed: 'Site details could not be updated.',
+      siteRemoved: 'The site has been removed.',
+      siteRemoveFailed: 'The site could not be removed.',
       siteUpdateUnavailable:
         'Site editing and removal need backend update/delete endpoints before changes can be saved.',
       searchGuards: 'Search guards by name, ID, or site',

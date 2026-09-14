@@ -100,6 +100,16 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
       <AgencyTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
+        onNotificationSelect={notification => {
+          if (
+            notification.reference_type === 'coverage_request' &&
+            notification.reference_id
+          ) {
+            navigation.navigate('AgencySites', {
+              openRequestId: notification.reference_id,
+            });
+          }
+        }}
       />
       <ScrollView
         contentContainerStyle={s.content}

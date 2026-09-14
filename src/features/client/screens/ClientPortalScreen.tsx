@@ -6,6 +6,9 @@ import {
   StyleSheet,
   Text,
   View,
+  Linking,
+  Alert,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,11 +21,16 @@ import ClientBottomNavigation, {
 } from '../components/ClientBottomNavigation';
 import ClientProfilePanel from '../components/ClientProfilePanel';
 import ClientCoverageRequests from '../components/ClientCoverageRequests';
+import ClientHomeContent from '../components/ClientHomeContent';
+import ClientInformationScreen, {
+  type ClientInformationPage,
+} from '../components/ClientInformationScreen';
 import AgencyProfileMenu from '../../dashboard/components/AgencyProfileMenu';
 import ScalePressable from '../../../components/common/ScalePressable';
 import {
   clientService,
   type ClientDetails,
+  type CoverageRequest,
 } from '../../../services/clientService';
 import { session } from '../../../services/session';
 import type { RootStackParamList } from '../../../navigation/types';
@@ -38,13 +46,23 @@ export default function ClientPortalScreen() {
   const [tab, setTab] = useState<ClientTab>('home');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [details, setDetails] = useState<ClientDetails | null>(null);
+  const [coverageRequests, setCoverageRequests] = useState<CoverageRequest[]>(
+    [],
+  );
+  const [informationPage, setInformationPage] =
+    useState<ClientInformationPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setDetails(await clientService.getDetails());
+      const [clientDetails, requests] = await Promise.all([
+        clientService.getDetails(),
+        clientService.getCoverageRequests(),
+      ]);
+      setDetails(clientDetails);
+      setCoverageRequests(requests);
     } catch (loadError) {
       setError(
         loadError instanceof Error ? loadError.message : t('client.loadFailed'),
@@ -56,106 +74,113 @@ export default function ClientPortalScreen() {
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    if (!informationPage) return;
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        setInformationPage(null);
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [informationPage]);
   const signOut = async () => {
     await session.clearToken();
     navigation.reset({ index: 0, routes: [{ name: 'AuthFlow' }] });
+  };
+  const emailSupport = async () => {
+    try {
+      await Linking.openURL(
+        `mailto:helpdesk@gmail.com?subject=${encodeURIComponent(
+          t('clientInfo.supportSubject'),
+        )}`,
+      );
+    } catch {
+      Alert.alert(t('client.needHelp'), t('clientInfo.emailUnavailable'));
+    }
   };
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <ClientTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
-        onNotificationPress={() => {
-          setProfileMenuOpen(false);
-          setTab('alerts');
-        }}
+        onNotificationOpen={() => setProfileMenuOpen(false)}
       />
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={load}
-            tintColor={colors.primary}
-          />
-        }
-      >
-        {loading ? (
-          <View style={s.state}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={s.muted}>{t('client.loading')}</Text>
-          </View>
-        ) : null}
-        {!loading && error ? (
-          <View style={s.state}>
-            <Text style={s.error}>{error}</Text>
-            <ScalePressable style={s.outline} onPress={load}>
-              <Text style={s.outlineText}>{t('superAdmin.tryAgain')}</Text>
-            </ScalePressable>
-          </View>
-        ) : null}
-        {!loading && !error && tab === 'home' ? (
-          <>
-            <Section title={t('client.yourAgencies')}>
+      {informationPage && tab === 'home' ? (
+        <View style={s.informationContent}>
+          <ClientInformationScreen page={informationPage} />
+        </View>
+      ) : (
+        <ScrollView
+          style={s.scroll}
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading}
+              onRefresh={load}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          {loading ? (
+            <View style={s.state}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={s.muted}>{t('client.loading')}</Text>
+            </View>
+          ) : null}
+          {!loading && error ? (
+            <View style={s.state}>
+              <Text style={s.error}>{error}</Text>
+              <ScalePressable style={s.outline} onPress={load}>
+                <Text style={s.outlineText}>{t('superAdmin.tryAgain')}</Text>
+              </ScalePressable>
+            </View>
+          ) : null}
+          {!loading && !error && tab === 'home' ? (
+            <ClientHomeContent
+              details={details}
+              requests={coverageRequests}
+              onHowItWorks={() => setInformationPage('howItWorks')}
+              onWhyHireAgency={() => setInformationPage('whyHireAgency')}
+              onNeedHelp={emailSupport}
+            />
+          ) : null}
+          {!loading && !error && tab === 'request' ? (
+            <ClientCoverageRequests />
+          ) : null}
+          {!loading && !error && tab === 'invoices' ? (
+            <Section title={t('client.invoices')}>
               <Empty
-                icon="briefcase"
-                title={t('client.noAgency')}
-                body={t('client.noAgencyHint')}
+                icon="file-text"
+                title={t('client.noInvoices')}
+                body={t('client.noInvoicesHint')}
               />
             </Section>
-            <Section title={t('client.coveragePlan')}>
-              <Text style={s.cardTitle}>
-                {details?.site_name || t('client.noCoverage')}
-              </Text>
-              <Text style={s.muted}>
-                {details
-                  ? [
-                      details.site_address,
-                      details.city,
-                      details.state,
-                      details.pincode,
-                    ]
-                      .filter(Boolean)
-                      .join(', ')
-                  : t('client.noCoverageHint')}
-              </Text>
+          ) : null}
+          {!loading && !error && tab === 'alerts' ? (
+            <Section title={t('client.alerts')}>
+              <Empty
+                icon="bell"
+                title={t('client.noAlerts')}
+                body={t('client.noAlertsHint')}
+              />
             </Section>
-          </>
-        ) : null}
-        {!loading && !error && tab === 'request' ? (
-          <ClientCoverageRequests />
-        ) : null}
-        {!loading && !error && tab === 'invoices' ? (
-          <Section title={t('client.invoices')}>
-            <Empty
-              icon="file-text"
-              title={t('client.noInvoices')}
-              body={t('client.noInvoicesHint')}
+          ) : null}
+          {!loading && !error && tab === 'profile' && details ? (
+            <ClientProfilePanel
+              details={details}
+              onUpdated={setDetails}
+              onSignOut={signOut}
             />
-          </Section>
-        ) : null}
-        {!loading && !error && tab === 'alerts' ? (
-          <Section title={t('client.alerts')}>
-            <Empty
-              icon="bell"
-              title={t('client.noAlerts')}
-              body={t('client.noAlertsHint')}
-            />
-          </Section>
-        ) : null}
-        {!loading && !error && tab === 'profile' && details ? (
-          <ClientProfilePanel
-            details={details}
-            onUpdated={setDetails}
-            onSignOut={signOut}
-          />
-        ) : null}
-      </ScrollView>
+          ) : null}
+        </ScrollView>
+      )}
       <ClientBottomNavigation
         activeTab={tab}
         onTabPress={nextTab => {
           setProfileMenuOpen(false);
+          setInformationPage(null);
           setTab(nextTab);
         }}
       />
@@ -223,6 +248,7 @@ function Empty({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white, position: 'relative' },
   scroll: { flex: 1 },
+  informationContent: { flex: 1, padding: spacing.md },
   content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
   section: {
     borderWidth: 1,

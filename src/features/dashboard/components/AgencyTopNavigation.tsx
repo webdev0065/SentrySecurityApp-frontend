@@ -1,68 +1,125 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
+import { useIsFocused } from '@react-navigation/native';
 
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import ScalePressable from '../../../components/common/ScalePressable';
+import SuperAdminNotificationsModal from '../../superAdmin/components/SuperAdminNotificationsModal';
+import { notificationService } from '../../../services/notificationService';
+import type { AppNotification } from '../../../services/notificationService';
 
 type Props = {
   profileMenuOpen: boolean;
   onProfilePress: () => void;
   onNotificationPress?: () => void;
+  onBeforeOpenNotifications?: () => void;
   unreadNotificationCount?: number;
   avatarInitials?: string;
+  onNotificationSelect?: (notification: AppNotification) => void;
 };
 
 const AgencyTopNavigation: React.FC<Props> = ({
   profileMenuOpen,
   onProfilePress,
   onNotificationPress,
+  onBeforeOpenNotifications,
   unreadNotificationCount = 0,
   avatarInitials = 'SR',
+  onNotificationSelect,
 }) => {
   const { t } = useTranslation();
+  const isFocused = useIsFocused();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [internalUnreadCount, setInternalUnreadCount] = useState(0);
+  const managesNotifications = !onNotificationPress;
+
+  useEffect(() => {
+    if (!managesNotifications || !isFocused) return;
+    let active = true;
+    const refresh = () => {
+      notificationService
+        .getUnreadCount()
+        .then(response => {
+          if (active) setInternalUnreadCount(response.count);
+        })
+        .catch(() => {
+          if (active) setInternalUnreadCount(0);
+        });
+    };
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [isFocused, managesNotifications]);
+
+  const visibleUnreadCount = managesNotifications
+    ? internalUnreadCount
+    : unreadNotificationCount;
+
   return (
-    <View style={styles.header}>
-      <Image
-        source={require('../../../assets/images/sentry-logo-horizontal.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      <View style={styles.actions}>
-        <ScalePressable
-          style={styles.bell}
-          onPress={onNotificationPress}
-          disabled={!onNotificationPress}
-          accessibilityLabel={t('superAdmin.notifications')}
-        >
-          <Feather name="bell" size={scaleFont(25)} color={colors.primary} />
-          {unreadNotificationCount > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-              </Text>
+    <>
+      <View style={styles.header}>
+        <Image
+          source={require('../../../assets/images/sentry-logo-horizontal.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <View style={styles.actions}>
+          <ScalePressable
+            style={styles.bell}
+            onPress={
+              onNotificationPress ??
+              (() => {
+                onBeforeOpenNotifications?.();
+                setNotificationsOpen(true);
+              })
+            }
+            accessibilityLabel={t('superAdmin.notifications')}
+          >
+            <Feather name="bell" size={scaleFont(25)} color={colors.primary} />
+            {visibleUnreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {visibleUnreadCount > 9 ? '9+' : visibleUnreadCount}
+                </Text>
+              </View>
+            ) : null}
+          </ScalePressable>
+          <ScalePressable
+            style={styles.profileTrigger}
+            onPress={onProfilePress}
+            accessibilityLabel={t('dashboard.myProfile')}
+          >
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{avatarInitials}</Text>
+              <View style={styles.online} />
             </View>
-          ) : null}
-        </ScalePressable>
-        <ScalePressable
-          style={styles.profileTrigger}
-          onPress={onProfilePress}
-          accessibilityLabel={t('dashboard.myProfile')}
-        >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{avatarInitials}</Text>
-            <View style={styles.online} />
-          </View>
-          <Feather
-            name={profileMenuOpen ? 'chevron-up' : 'chevron-down'}
-            size={scaleFont(22)}
-            color={colors.primary}
-          />
-        </ScalePressable>
+            <Feather
+              name={profileMenuOpen ? 'chevron-up' : 'chevron-down'}
+              size={scaleFont(22)}
+              color={colors.primary}
+            />
+          </ScalePressable>
+        </View>
       </View>
-    </View>
+      {managesNotifications ? (
+        <SuperAdminNotificationsModal
+          visible={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+          onUnreadCountChange={setInternalUnreadCount}
+          emptyHint={t('dashboard.noNotificationsHint')}
+          onNotificationSelect={notification => {
+            setNotificationsOpen(false);
+            onNotificationSelect?.(notification);
+          }}
+        />
+      ) : null}
+    </>
   );
 };
 
@@ -78,6 +135,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     zIndex: 30,
     elevation: 0,
+    overflow: 'hidden',
   },
   logo: { width: scaleWidth(180), height: scaleHeight(180) },
   actions: { flexDirection: 'row', alignItems: 'center', gap: scaleWidth(10) },

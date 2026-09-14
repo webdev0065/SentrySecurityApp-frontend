@@ -25,7 +25,7 @@ export type AuthStackParamList = {
 export type MainStackParamList = {
   AgencyOverview: undefined;
   AgencyIncidents: { openFileIncident?: boolean } | undefined;
-  AgencySites: { openAddSite?: boolean } | undefined;
+  AgencySites: { openAddSite?: boolean; openRequestId?: number } | undefined;
   AgencyProfile: undefined;
   AgencyGuards: { openAddGuard?: boolean } | undefined;
 };

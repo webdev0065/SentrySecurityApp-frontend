@@ -29,9 +29,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleSendOtp = async () => {
     if (!isValidIdentifier(identifier)) {
-      Alert.alert(
-        t('auth.invalidDetails'), t('auth.enterValidIdentifier'),
-      );
+      Alert.alert(t('auth.invalidDetails'), t('auth.enterValidIdentifier'));
       return;
     }
     try {
@@ -40,7 +38,8 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       navigation.navigate('VerifyOTP');
     } catch (error) {
       Alert.alert(
-        t('auth.couldNotSendOtp'), error instanceof Error ? error.message : t('auth.tryAgain'),
+        t('auth.couldNotSendOtp'),
+        error instanceof Error ? error.message : t('auth.tryAgain'),
       );
     } finally {
       setIsSubmitting(false);

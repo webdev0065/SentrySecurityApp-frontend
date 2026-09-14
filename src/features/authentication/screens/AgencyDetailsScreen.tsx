@@ -147,7 +147,10 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleContinue = async () => {
     if (agencyName.trim().length < 2) {
-      Alert.alert(t('details.agencyNameRequired'), t('details.enterAgencyCompany'));
+      Alert.alert(
+        t('details.agencyNameRequired'),
+        t('details.enterAgencyCompany'),
+      );
       return;
     }
     if (!businessType) {
@@ -170,7 +173,10 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (!state) {
-      Alert.alert(t('details.stateRequired'), t('details.selectStateTerritory'));
+      Alert.alert(
+        t('details.stateRequired'),
+        t('details.selectStateTerritory'),
+      );
       return;
     }
     if (!district) {
@@ -247,7 +253,9 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           placeholderTextColor="#A3A3A3"
         />
 
-        <Text style={styles.labelBusinessType}>{t('details.businessType')}</Text>
+        <Text style={styles.labelBusinessType}>
+          {t('details.businessType')}
+        </Text>
         <TouchableOpacity
           style={[styles.input, styles.businessInput]}
           onPress={toggleBusinessMenu}
@@ -296,7 +304,9 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
           autoCapitalize="characters"
         />
 
-        <Text style={styles.labelOfficeAddress}>{t('details.officeAddress')}</Text>
+        <Text style={styles.labelOfficeAddress}>
+          {t('details.officeAddress')}
+        </Text>
         <TextInput
           value={officeAddress}
           onChangeText={setOfficeAddress}
@@ -397,7 +407,9 @@ const AgencyDetailsScreen: React.FC<Props> = ({ navigation }) => {
               keyboardShouldPersistTaps="handled"
             >
               {locationLoading ? (
-                <Text style={styles.noLocation}>{t('details.loadingLocations')}</Text>
+                <Text style={styles.noLocation}>
+                  {t('details.loadingLocations')}
+                </Text>
               ) : null}
               {!locationLoading && locationError ? (
                 <Text style={styles.noLocation}>{locationError}</Text>

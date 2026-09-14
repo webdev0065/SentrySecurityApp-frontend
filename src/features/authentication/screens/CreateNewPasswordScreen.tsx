@@ -111,7 +111,9 @@ const CreateNewPasswordScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.confirmPasswordLabel}>{t('auth.confirmPassword')}</Text>
+      <Text style={styles.confirmPasswordLabel}>
+        {t('auth.confirmPassword')}
+      </Text>
       <View style={[styles.inputWrapper, styles.confirmPasswordInput]}>
         <Feather name="lock" size={scaleFont(24)} color="#A3A3A3" />
         <TextInput

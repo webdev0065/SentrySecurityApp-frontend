@@ -66,7 +66,10 @@ const ClientDetailsScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
     if (!state) {
-      Alert.alert(t('details.stateRequired'), t('details.selectStateTerritory'));
+      Alert.alert(
+        t('details.stateRequired'),
+        t('details.selectStateTerritory'),
+      );
       return;
     }
     if (!isValidPincode(pincode)) {

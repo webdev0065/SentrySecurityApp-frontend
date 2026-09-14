@@ -28,6 +28,8 @@ type Props = {
   onClose: () => void;
   onUnreadCountChange: (count: number) => void;
   onReviewApprovals?: () => void;
+  emptyHint?: string;
+  onNotificationSelect?: (notification: AppNotification) => void;
 };
 
 const formatDate = (value: string) => {
@@ -44,6 +46,8 @@ export default function SuperAdminNotificationsModal({
   onClose,
   onUnreadCountChange,
   onReviewApprovals,
+  emptyHint,
+  onNotificationSelect,
 }: Props) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -69,11 +73,14 @@ export default function SuperAdminNotificationsModal({
   }, [onUnreadCountChange, t]);
 
   useEffect(() => {
-    if (visible) void loadNotifications();
+    if (visible) loadNotifications();
   }, [loadNotifications, visible]);
 
   const markRead = async (notification: AppNotification) => {
-    if (notification.status === 'read') return;
+    if (notification.status === 'read') {
+      onNotificationSelect?.(notification);
+      return;
+    }
     setWorkingId(notification.id);
     try {
       await notificationService.markAsRead(notification.id);
@@ -87,6 +94,7 @@ export default function SuperAdminNotificationsModal({
           item => item.id !== notification.id && item.status === 'unread',
         ).length,
       );
+      onNotificationSelect?.(notification);
     } catch (markError) {
       Alert.alert(
         t('superAdmin.notifications'),
@@ -184,7 +192,7 @@ export default function SuperAdminNotificationsModal({
             <View style={styles.headerActions}>
               <ScalePressable
                 style={[styles.markAll, !unreadCount && styles.disabled]}
-                onPress={() => void markAllRead()}
+                onPress={() => markAllRead()}
                 disabled={!unreadCount || workingId !== null}
                 accessibilityLabel={t('superAdmin.markAllRead')}
               >
@@ -232,7 +240,7 @@ export default function SuperAdminNotificationsModal({
                 <Text style={styles.stateText}>{error}</Text>
                 <ScalePressable
                   style={styles.retry}
-                  onPress={() => void loadNotifications()}
+                  onPress={() => loadNotifications()}
                 >
                   <Text style={styles.retryText}>
                     {t('superAdmin.tryAgain')}
@@ -253,7 +261,7 @@ export default function SuperAdminNotificationsModal({
                   {t('superAdmin.noNotifications')}
                 </Text>
                 <Text style={styles.stateText}>
-                  {t('superAdmin.approvalHint')}
+                  {emptyHint || t('superAdmin.approvalHint')}
                 </Text>
               </View>
             ) : null}
@@ -265,7 +273,7 @@ export default function SuperAdminNotificationsModal({
                       styles.notification,
                       notification.status === 'unread' && styles.unread,
                     ]}
-                    onPress={() => void markRead(notification)}
+                    onPress={() => markRead(notification)}
                     disabled={workingId === notification.id}
                     accessibilityLabel={`${
                       notification.status === 'unread' ? 'Mark as read: ' : ''

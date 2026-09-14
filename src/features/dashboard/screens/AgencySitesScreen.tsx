@@ -32,6 +32,7 @@ import {
 } from '../../../services/agencyApiService';
 import ScalePressable from '../../../components/common/ScalePressable';
 import EditSiteModal from '../components/EditSiteModal';
+import AgencyCoverageRequests from '../components/AgencyCoverageRequests';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencySites'>;
 const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
@@ -45,6 +46,9 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
   const [selectedSite, setSelectedSite] = useState<AgencySite | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [section, setSection] = useState<'sites' | 'requests'>(
+    route.params?.openRequestId ? 'requests' : 'sites',
+  );
   const loadSites = useCallback(async () => {
     try {
       setLoadError('');
@@ -60,7 +64,7 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [t]);
   useEffect(() => {
-    void loadSites();
+    loadSites();
   }, [loadSites]);
   useEffect(() => {
     if (route.params?.openAddSite) {
@@ -68,6 +72,12 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
       navigation.setParams({ openAddSite: undefined });
     }
   }, [navigation, route.params?.openAddSite]);
+  useEffect(() => {
+    if (route.params?.openRequestId) setSection('requests');
+  }, [route.params?.openRequestId]);
+  const clearRequestedId = useCallback(() => {
+    navigation.setParams({ openRequestId: undefined });
+  }, [navigation]);
   const visibleSites = useMemo(
     () =>
       siteItems.filter(site =>
@@ -80,6 +90,7 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
     [query, siteItems],
   );
   const navigate = (tab: AgencyNavTab) => {
+    if (tab === 'sites') setSection('sites');
     if (tab === 'overview') navigation.navigate('AgencyOverview');
     if (tab === 'guards') navigation.navigate('AgencyGuards');
     if (tab === 'incidents') navigation.navigate('AgencyIncidents');
@@ -91,53 +102,102 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
       <AgencyTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
+        onNotificationSelect={notification => {
+          if (
+            notification.reference_type === 'coverage_request' &&
+            notification.reference_id
+          ) {
+            setSection('requests');
+            navigation.setParams({ openRequestId: notification.reference_id });
+          }
+        }}
       />
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
       >
-        <ScalePressable
-          style={s.addButton}
-          onPress={() => setAddSiteOpen(true)}
-          accessibilityRole="button"
-        >
-          <Text style={s.addText}>{t('dashboard.addSite')}</Text>
-        </ScalePressable>
-        <View style={s.searchRow}>
-          <View style={s.search}>
-            <Feather name="search" size={f(23)} color="#A3A3A3" />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={t('dashboard.searchSites')}
-              placeholderTextColor="#A3A3A3"
-              style={s.input}
-            />
-          </View>
-          <TouchableOpacity
-            style={s.filter}
-            accessibilityLabel={t('dashboard.filter')}
+        <View style={s.sectionTabs}>
+          <ScalePressable
+            style={[s.sectionTab, section === 'sites' && s.sectionTabActive]}
+            onPress={() => setSection('sites')}
           >
-            <Feather name="filter" size={f(24)} color={colors.primary} />
-          </TouchableOpacity>
+            <Text
+              pointerEvents="none"
+              style={[
+                s.sectionTabText,
+                section === 'sites' && s.sectionTabTextActive,
+              ]}
+            >
+              {t('dashboard.sites')}
+            </Text>
+          </ScalePressable>
+          <ScalePressable
+            style={[s.sectionTab, section === 'requests' && s.sectionTabActive]}
+            onPress={() => setSection('requests')}
+          >
+            <Text
+              pointerEvents="none"
+              style={[
+                s.sectionTabText,
+                section === 'requests' && s.sectionTabTextActive,
+              ]}
+            >
+              {t('coverageManagement.requests')}
+            </Text>
+          </ScalePressable>
         </View>
-        <View style={s.list}>
-          {loading ? (
-            <Text style={s.message}>{t('dashboard.loadingSites')}</Text>
-          ) : loadError ? (
-            <Text style={s.error}>{loadError}</Text>
-          ) : visibleSites.length ? (
-            visibleSites.map(site => (
-              <SiteCard
-                key={site.id}
-                site={site}
-                onPress={() => setSelectedSite(site)}
-              />
-            ))
-          ) : (
-            <Text style={s.message}>{t('dashboard.noSites')}</Text>
-          )}
-        </View>
+        {section === 'sites' ? (
+          <>
+            <ScalePressable
+              style={s.addButton}
+              onPress={() => setAddSiteOpen(true)}
+              accessibilityRole="button"
+            >
+              <Text style={s.addText}>{t('dashboard.addSite')}</Text>
+            </ScalePressable>
+            <View style={s.searchRow}>
+              <View style={s.search}>
+                <Feather name="search" size={f(23)} color="#A3A3A3" />
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder={t('dashboard.searchSites')}
+                  placeholderTextColor="#A3A3A3"
+                  style={s.input}
+                />
+              </View>
+              <TouchableOpacity
+                style={s.filter}
+                accessibilityLabel={t('dashboard.filter')}
+              >
+                <Feather name="filter" size={f(24)} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+            <View style={s.list}>
+              {loading ? (
+                <Text style={s.message}>{t('dashboard.loadingSites')}</Text>
+              ) : loadError ? (
+                <Text style={s.error}>{loadError}</Text>
+              ) : visibleSites.length ? (
+                visibleSites.map(site => (
+                  <SiteCard
+                    key={site.id}
+                    site={site}
+                    onPress={() => setSelectedSite(site)}
+                  />
+                ))
+              ) : (
+                <Text style={s.message}>{t('dashboard.noSites')}</Text>
+              )}
+            </View>
+          </>
+        ) : (
+          <AgencyCoverageRequests
+            requestedId={route.params?.openRequestId}
+            onRequestedIdHandled={clearRequestedId}
+            onRequestUpdated={loadSites}
+          />
+        )}
       </ScrollView>
       <AgencyBottomNavigation activeTab="sites" onTabPress={navigate} />
       {profileMenuOpen ? (
@@ -165,6 +225,10 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
         visible={selectedSite !== null}
         site={selectedSite}
         onClose={() => setSelectedSite(null)}
+        onChanged={() => {
+          setSelectedSite(null);
+          loadSites();
+        }}
       />
     </SafeAreaView>
   );
@@ -220,13 +284,31 @@ const SiteCard: React.FC<{ site: AgencySite; onPress: () => void }> = ({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white, position: 'relative' },
   content: { padding: w(14), paddingBottom: h(22) },
+  sectionTabs: {
+    flexDirection: 'row',
+    gap: w(10),
+    marginTop: h(18),
+    marginBottom: h(16),
+  },
+  sectionTab: {
+    flex: 1,
+    height: h(44),
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: w(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTabActive: { backgroundColor: colors.primary },
+  sectionTabText: { color: colors.primary, fontSize: f(15), fontWeight: '600' },
+  sectionTabTextActive: { color: colors.white },
   addButton: {
     height: h(36),
     backgroundColor: colors.primary,
     borderRadius: w(6),
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: h(22),
+    marginTop: 0,
     marginBottom: h(15),
   },
   addText: { color: colors.white, fontSize: f(16), fontWeight: '700' },

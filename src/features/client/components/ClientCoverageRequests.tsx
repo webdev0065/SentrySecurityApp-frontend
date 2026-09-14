@@ -17,6 +17,7 @@ import {
   clientService,
   type AvailableAgency,
   type CoverageRequest,
+  type PublicAgencyDetails,
 } from '../../../services/clientService';
 import {
   indiaLocationService,
@@ -55,6 +56,10 @@ export default function ClientCoverageRequests() {
   const [agenciesLoading, setAgenciesLoading] = useState(false);
   const [agenciesError, setAgenciesError] = useState('');
   const [selectedAgencyId, setSelectedAgencyId] = useState<number | null>(null);
+  const [agencyDetails, setAgencyDetails] =
+    useState<PublicAgencyDetails | null>(null);
+  const [agencyDetailsOpen, setAgencyDetailsOpen] = useState(false);
+  const [agencyDetailsLoading, setAgencyDetailsLoading] = useState(false);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -174,6 +179,28 @@ export default function ClientCoverageRequests() {
     if (picker === 'city') update('city', option.name);
     setPicker(null);
   };
+  const openAgencyDetails = async (agency: AvailableAgency) => {
+    if (selectedAgencyId === agency.id) {
+      setSelectedAgencyId(null);
+      return;
+    }
+    setAgencyDetails(null);
+    setAgencyDetailsOpen(true);
+    setAgencyDetailsLoading(true);
+    try {
+      setAgencyDetails(await clientService.getAgencyDetails(agency.id));
+    } catch (detailsError) {
+      setAgencyDetailsOpen(false);
+      Alert.alert(
+        t('coverageRequest.agencyDetails'),
+        detailsError instanceof Error
+          ? detailsError.message
+          : t('coverageRequest.agencyDetailsFailed'),
+      );
+    } finally {
+      setAgencyDetailsLoading(false);
+    }
+  };
   const submit = async () => {
     if (
       !form.eventName.trim() ||
@@ -268,11 +295,7 @@ export default function ClientCoverageRequests() {
                       s.agencyCard,
                       agency.id === selectedAgencyId && s.selectedAgencyCard,
                     ]}
-                    onPress={() =>
-                      setSelectedAgencyId(current =>
-                        current === agency.id ? null : agency.id,
-                      )
-                    }
+                    onPress={() => openAgencyDetails(agency)}
                     accessibilityRole="radio"
                     accessibilityState={{
                       selected: agency.id === selectedAgencyId,
@@ -388,6 +411,102 @@ export default function ClientCoverageRequests() {
         )}
       </View>
       <Modal
+        visible={agencyDetailsOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAgencyDetailsOpen(false)}
+      >
+        <View style={s.overlay}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setAgencyDetailsOpen(false)}
+          />
+          <View style={s.agencyModal}>
+            <View style={s.modalHeader}>
+              <Text style={s.pickerTitle}>
+                {t('coverageRequest.agencyDetails')}
+              </Text>
+              <ScalePressable
+                style={s.closeButton}
+                onPress={() => setAgencyDetailsOpen(false)}
+                accessibilityLabel={t('dashboard.close')}
+              >
+                <Feather name="x" size={scaleFont(21)} color={colors.primary} />
+              </ScalePressable>
+            </View>
+            {agencyDetailsLoading ? (
+              <View style={s.detailsLoading}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={s.muted}>
+                  {t('coverageRequest.loadingAgencyDetails')}
+                </Text>
+              </View>
+            ) : agencyDetails ? (
+              <>
+                <View style={s.detailsHero}>
+                  <View style={s.agencyIcon}>
+                    <Feather
+                      name="shield"
+                      size={scaleFont(21)}
+                      color={colors.gold}
+                    />
+                  </View>
+                  <View style={s.agencyDetails}>
+                    <Text style={s.detailsName}>
+                      {agencyDetails.agency_name}
+                    </Text>
+                    <Text style={s.muted}>{agencyDetails.business_type}</Text>
+                  </View>
+                </View>
+                <DetailRow
+                  icon="map-pin"
+                  label={t('dashboard.address')}
+                  value={agencyDetails.office_address}
+                />
+                <DetailRow
+                  icon="navigation"
+                  label={t('coverageRequest.serviceArea')}
+                  value={[
+                    agencyDetails.city,
+                    agencyDetails.district,
+                    agencyDetails.state,
+                    agencyDetails.pincode,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                />
+                {agencyDetails.gst_number ? (
+                  <DetailRow
+                    icon="file-text"
+                    label={t('dashboard.gstNumber')}
+                    value={agencyDetails.gst_number}
+                  />
+                ) : null}
+                <View style={s.modalActions}>
+                  <ScalePressable
+                    style={s.cancelButton}
+                    onPress={() => setAgencyDetailsOpen(false)}
+                  >
+                    <Text style={s.cancelText}>{t('superAdmin.cancel')}</Text>
+                  </ScalePressable>
+                  <ScalePressable
+                    style={s.confirmButton}
+                    onPress={() => {
+                      setSelectedAgencyId(agencyDetails.id);
+                      setAgencyDetailsOpen(false);
+                    }}
+                  >
+                    <Text style={s.confirmText}>
+                      {t('coverageRequest.selectThisAgency')}
+                    </Text>
+                  </ScalePressable>
+                </View>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+      <Modal
         visible={picker !== null}
         transparent
         animationType="fade"
@@ -438,6 +557,26 @@ export default function ClientCoverageRequests() {
           </View>
         </View>
       </Modal>
+    </View>
+  );
+}
+
+function DetailRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Feather>['name'];
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={s.detailRow}>
+      <Feather name={icon} size={scaleFont(19)} color={colors.textGray} />
+      <View style={s.agencyDetails}>
+        <Text style={s.detailLabel}>{label}</Text>
+        <Text style={s.detailValue}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -668,6 +807,87 @@ const s = StyleSheet.create({
     borderRadius: spacing.md,
     padding: spacing.md,
     gap: spacing.sm,
+  },
+  agencyModal: {
+    backgroundColor: colors.white,
+    borderRadius: spacing.md,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: spacing.lg,
+    backgroundColor: colors.light.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailsLoading: {
+    minHeight: 160,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  detailsHero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  detailsName: {
+    color: colors.primary,
+    fontSize: scaleFont(typography.sizes.lg),
+    fontWeight: typography.weights.bold,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  detailLabel: {
+    color: colors.textGray,
+    fontSize: scaleFont(typography.sizes.xs),
+  },
+  detailValue: {
+    color: colors.primary,
+    fontSize: scaleFont(typography.sizes.sm),
+    fontWeight: typography.weights.medium,
+  },
+  modalActions: { flexDirection: 'row', gap: spacing.sm },
+  cancelButton: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelText: {
+    color: colors.primary,
+    fontSize: scaleFont(typography.sizes.sm),
+    fontWeight: typography.weights.semiBold,
+  },
+  confirmButton: {
+    flex: 2,
+    minHeight: 48,
+    borderRadius: spacing.sm,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  confirmText: {
+    color: colors.white,
+    fontSize: scaleFont(typography.sizes.sm),
+    fontWeight: typography.weights.bold,
   },
   pickerTitle: {
     color: colors.primary,

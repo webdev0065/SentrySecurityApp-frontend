@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
@@ -11,24 +12,40 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 
-import type { AgencySite } from '../../../services/agencyApiService';
+import {
+  agencyApiService,
+  type AgencySite,
+} from '../../../services/agencyApiService';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import ScalePressable from '../../../components/common/ScalePressable';
 
-type Props = { visible: boolean; site: AgencySite | null; onClose: () => void };
+type Props = {
+  visible: boolean;
+  site: AgencySite | null;
+  onClose: () => void;
+  onChanged?: (site: AgencySite, action: 'updated' | 'deleted') => void;
+};
 
-const EditSiteModal: React.FC<Props> = ({ visible, site, onClose }) => {
+const EditSiteModal: React.FC<Props> = ({
+  visible,
+  site,
+  onClose,
+  onChanged,
+}) => {
   const { t } = useTranslation();
   const [siteName, setSiteName] = useState('');
   const [address, setAddress] = useState('');
   const [plan, setPlan] = useState<AgencySite['coverage_plan']>('day_shift');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (site) {
       setSiteName(site.site_name);
       setAddress(site.site_address ?? '');
       setPlan(site.coverage_plan ?? 'day_shift');
+      setError('');
     }
   }, [site]);
   if (!site) return null;
@@ -38,11 +55,64 @@ const EditSiteModal: React.FC<Props> = ({ visible, site, onClose }) => {
       ['night_watch', t('dashboard.nightWatch')],
       ['24x7', t('dashboard.coverage24x7')],
     ];
-  const save = () =>
-    Alert.alert(
-      t('dashboard.saveChanges'),
-      t('dashboard.siteUpdateUnavailable'),
-    );
+  const save = async () => {
+    if (!siteName.trim() || !address.trim()) {
+      setError(t('dashboard.siteAndAddressRequired'));
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const updated = await agencyApiService.updateSite(site.id, {
+        siteName: siteName.trim(),
+        siteAddress: address.trim(),
+        city: site.city,
+        state: site.state,
+        latitude: site.latitude,
+        longitude: site.longitude,
+        coveragePlan: plan,
+        startTime: site.start_time,
+        endTime: site.end_time,
+      });
+      onChanged?.(updated, 'updated');
+      onClose();
+      Alert.alert(t('dashboard.saveChanges'), t('dashboard.siteUpdated'));
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : t('dashboard.siteUpdateFailed'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+  const confirmRemove = () =>
+    Alert.alert(t('dashboard.removeSite'), t('dashboard.removeSiteConfirm'), [
+      { text: t('superAdmin.cancel'), style: 'cancel' },
+      {
+        text: t('dashboard.removeSite'),
+        style: 'destructive',
+        onPress: async () => {
+          setSaving(true);
+          setError('');
+          try {
+            await agencyApiService.removeSite(site.id);
+            onChanged?.(site, 'deleted');
+            onClose();
+            Alert.alert(t('dashboard.removeSite'), t('dashboard.siteRemoved'));
+          } catch (removeError) {
+            setError(
+              removeError instanceof Error
+                ? removeError.message
+                : t('dashboard.siteRemoveFailed'),
+            );
+          } finally {
+            setSaving(false);
+          }
+        },
+      },
+    ]);
 
   return (
     <Modal
@@ -58,6 +128,7 @@ const EditSiteModal: React.FC<Props> = ({ visible, site, onClose }) => {
             <ScalePressable
               style={s.close}
               onPress={onClose}
+              disabled={saving}
               accessibilityRole="button"
               accessibilityLabel={t('dashboard.close')}
             >
@@ -133,6 +204,7 @@ const EditSiteModal: React.FC<Props> = ({ visible, site, onClose }) => {
                   : t('dashboard.selectedPlan')}
               </Text>
             </View>
+            {error ? <Text style={s.error}>{error}</Text> : null}
             <ScalePressable
               style={s.outlineButton}
               onPress={() =>
@@ -153,18 +225,19 @@ const EditSiteModal: React.FC<Props> = ({ visible, site, onClose }) => {
             <ScalePressable
               style={s.save}
               onPress={save}
+              disabled={saving}
               accessibilityRole="button"
             >
-              <Text style={s.saveText}>{t('dashboard.saveChanges')}</Text>
+              {saving ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={s.saveText}>{t('dashboard.saveChanges')}</Text>
+              )}
             </ScalePressable>
             <ScalePressable
               style={s.remove}
-              onPress={() =>
-                Alert.alert(
-                  t('dashboard.removeSite'),
-                  t('dashboard.siteUpdateUnavailable'),
-                )
-              }
+              onPress={confirmRemove}
+              disabled={saving}
               accessibilityRole="button"
             >
               <Text style={s.removeText}>{t('dashboard.removeSite')}</Text>
@@ -247,6 +320,12 @@ const s = StyleSheet.create({
     fontSize: scaleFont(17),
   },
   hint: { color: '#999', fontSize: scaleFont(11), marginTop: scaleHeight(4) },
+  error: {
+    color: colors.status.danger,
+    fontSize: scaleFont(14),
+    marginTop: scaleHeight(12),
+    textAlign: 'center',
+  },
   locationBox: {
     height: scaleHeight(50),
     borderWidth: 1,

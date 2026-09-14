@@ -16,6 +16,20 @@ export type AgencyProfile = {
 
 type AgencyProfileResponse = { success: boolean; data: AgencyProfile };
 
+export type UpdateAgencyProfileInput = {
+  agencyName: string;
+  businessType: string;
+  gstNumber?: string;
+  officeAddress: string;
+  city: string;
+  state: string;
+  district: string;
+  pincode: string;
+  fullName: string;
+  email: string;
+  mobileNumber: string;
+};
+
 export const accountService = {
   saveAgencyDetails: (body: object) =>
     apiRequest('/agency/details', {
@@ -35,7 +49,7 @@ export const accountService = {
         authenticated: true,
       })
     ).data,
-  updateAgencyProfile: (body: object) =>
+  updateAgencyProfile: (body: UpdateAgencyProfileInput) =>
     apiRequest<AgencyProfileResponse>('/agency/details', {
       method: 'PUT',
       body,

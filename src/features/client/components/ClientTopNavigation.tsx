@@ -4,17 +4,17 @@ import AgencyTopNavigation from '../../dashboard/components/AgencyTopNavigation'
 export default function ClientTopNavigation({
   profileMenuOpen,
   onProfilePress,
-  onNotificationPress,
+  onNotificationOpen,
 }: {
   profileMenuOpen: boolean;
   onProfilePress: () => void;
-  onNotificationPress: () => void;
+  onNotificationOpen?: () => void;
 }) {
   return (
     <AgencyTopNavigation
       profileMenuOpen={profileMenuOpen}
       onProfilePress={onProfilePress}
-      onNotificationPress={onNotificationPress}
+      onBeforeOpenNotifications={onNotificationOpen}
       avatarInitials="CL"
     />
   );

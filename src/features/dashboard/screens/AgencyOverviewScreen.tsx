@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../../styles/colors';
 import {
   scaleFont as f,
@@ -25,19 +26,12 @@ import type { MainStackParamList } from '../../../navigation/types';
 import ScalePressable from '../../../components/common/ScalePressable';
 import GuardsOnDutyModal from '../components/GuardsOnDutyModal';
 import ActiveSitesModal from '../components/ActiveSitesModal';
-
-const summary = [
-  ['users', '4', 'guardsOnDuty', '#0EAE5A', '#E2F5E9'],
-  ['grid', '3', 'activeSites', '#F5A400', '#FFF1D9'],
-  ['alert-circle', '1', 'openIncidents', '#EF4444', '#FDE4E4'],
-  ['user', '2', 'unassignedGuards', '#2563EB', '#E8EEFF'],
-] as const;
-const sites = [
-  'Cyber Hub — Gate 2',
-  'Cyber Hub — Reception',
-  'Sunrise Mall — Lobby',
-  'Vista Towers — Roof Access',
-];
+import {
+  agencyApiService,
+  type AgencyGuard,
+  type AgencyIncident,
+  type AgencySite,
+} from '../../../services/agencyApiService';
 
 const Icon = ({
   name,
@@ -57,6 +51,53 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [guardsOnDutyOpen, setGuardsOnDutyOpen] = useState(false);
   const [activeSitesOpen, setActiveSitesOpen] = useState(false);
+  const [sites, setSites] = useState<AgencySite[]>([]);
+  const [guards, setGuards] = useState<AgencyGuard[]>([]);
+  const [incidents, setIncidents] = useState<AgencyIncident[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      Promise.all([
+        agencyApiService.getSites(),
+        agencyApiService.getGuards(),
+        agencyApiService.getIncidents(),
+      ])
+        .then(([siteItems, guardItems, incidentItems]) => {
+          if (!active) return;
+          setSites(siteItems);
+          setGuards(guardItems);
+          setIncidents(incidentItems);
+        })
+        .catch(() => undefined);
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+  const summary = [
+    [
+      'users',
+      String(guards.filter(item => item.status === 'on_duty').length),
+      'guardsOnDuty',
+      '#0EAE5A',
+      '#E2F5E9',
+    ],
+    ['grid', String(sites.length), 'activeSites', '#F5A400', '#FFF1D9'],
+    [
+      'alert-circle',
+      String(incidents.filter(item => item.status !== 'closed').length),
+      'openIncidents',
+      '#EF4444',
+      '#FDE4E4',
+    ],
+    [
+      'user',
+      String(guards.filter(item => !item.site_id).length),
+      'unassignedGuards',
+      '#2563EB',
+      '#E8EEFF',
+    ],
+  ] as const;
   return (
     // edges: top keeps the header clear of the notch/status bar; bottom keeps
     // the tab bar clear of the home indicator on notched devices.
@@ -66,6 +107,16 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
       <AgencyTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
+        onNotificationSelect={notification => {
+          if (
+            notification.reference_type === 'coverage_request' &&
+            notification.reference_id
+          ) {
+            navigation.navigate('AgencySites', {
+              openRequestId: notification.reference_id,
+            });
+          }
+        }}
       />
 
       <ScrollView
@@ -181,9 +232,27 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={s.list}>
           {sites.map(site => (
-            <Live key={site} title={site} assigned />
+            <Live
+              key={site.id}
+              title={site.site_name}
+              assigned
+              total={guards.filter(guard => guard.site_id === site.id).length}
+              onDuty={
+                guards.filter(
+                  guard =>
+                    guard.site_id === site.id && guard.status === 'on_duty',
+                ).length
+              }
+            />
           ))}
-          <Live title="Unassigned" assigned={false} />
+          {guards.some(guard => !guard.site_id) ? (
+            <Live
+              title={t('dashboard.unassigned')}
+              assigned={false}
+              total={guards.filter(guard => !guard.site_id).length}
+              onDuty={0}
+            />
+          ) : null}
         </View>
       </ScrollView>
 
@@ -272,15 +341,34 @@ const Action = ({
     <Text style={[s.actionText, { color }]}>{text}</Text>
   </ScalePressable>
 );
-const Live = ({ title, assigned }: { title: string; assigned: boolean }) => (
-  <LiveContent title={title} assigned={assigned} />
+const Live = ({
+  title,
+  assigned,
+  total,
+  onDuty,
+}: {
+  title: string;
+  assigned: boolean;
+  total: number;
+  onDuty: number;
+}) => (
+  <LiveContent
+    title={title}
+    assigned={assigned}
+    total={total}
+    onDuty={onDuty}
+  />
 );
 const LiveContent = ({
   title,
   assigned,
+  total,
+  onDuty,
 }: {
   title: string;
   assigned: boolean;
+  total: number;
+  onDuty: number;
 }) => {
   const { t } = useTranslation();
   return (
@@ -288,7 +376,7 @@ const LiveContent = ({
       <View
         style={[
           s.liveIcon,
-          { backgroundColor: assigned ? '#E2F5E9' : '#FDE4E4' },
+          assigned ? s.liveIconAssigned : s.liveIconUnassigned,
         ]}
       >
         <Icon
@@ -300,11 +388,9 @@ const LiveContent = ({
       <View style={s.liveCopy}>
         <Text style={s.liveTitle}>{title}</Text>
         <Text
-          style={[s.liveCaption, { color: assigned ? '#16A34A' : '#EF4444' }]}
+          style={[s.liveCaption, assigned ? s.liveAssigned : s.liveUnassigned]}
         >
-          {assigned
-            ? `1/1 ${t('dashboard.onDuty')}`
-            : `0/2 ${t('dashboard.onDuty')}`}
+          {`${onDuty}/${total} ${t('dashboard.onDuty')}`}
         </Text>
       </View>
       <Chevron />
@@ -480,9 +566,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  liveIconAssigned: { backgroundColor: '#E2F5E9' },
+  liveIconUnassigned: { backgroundColor: '#FDE4E4' },
   liveCopy: { flex: 1, marginLeft: w(13) },
   liveTitle: { fontSize: f(16), fontWeight: '700', color: colors.primary },
   liveCaption: { fontSize: f(10), marginTop: 2 },
+  liveAssigned: { color: '#16A34A' },
+  liveUnassigned: { color: '#EF4444' },
 });
 
 export default AgencyOverviewScreen;
