@@ -648,12 +648,10 @@ function Dropdown({
 const s = StyleSheet.create({
   container: { gap: spacing.md },
   card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: spacing.md,
-    padding: spacing.md,
+    paddingVertical: spacing.sm,
     gap: spacing.md,
-    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   sectionTitle: {
     color: colors.primary,

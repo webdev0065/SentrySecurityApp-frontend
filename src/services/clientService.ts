@@ -94,6 +94,17 @@ export type ClientAgencyGuardData = {
   };
 };
 
+export type ClientAlert = {
+  id: number;
+  incident_code: string;
+  severity: 'low' | 'medium' | 'high';
+  notes: string;
+  status: 'pending' | 'in_progress' | 'resolved';
+  site_name: string;
+  agency_name: string;
+  created_at: string;
+};
+
 export const clientService = {
   getDetails: async () => {
     const response = await apiRequest<{
@@ -120,6 +131,13 @@ export const clientService = {
     }>('/client/coverage-request', { authenticated: true });
     return response.data;
   },
+  getAlerts: async () =>
+    (
+      await apiRequest<{ success: boolean; data: ClientAlert[] }>(
+        '/client/alerts',
+        { authenticated: true },
+      )
+    ).data,
   createCoverageRequest: async (body: CoverageRequestInput) => {
     const response = await apiRequest<{
       success: boolean;

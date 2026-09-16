@@ -394,11 +394,9 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(typography.sizes.sm),
   },
   card: {
-    padding: spacing.md,
-    borderRadius: spacing.md,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   cardTitleRow: {
     minHeight: scaleHeight(28),

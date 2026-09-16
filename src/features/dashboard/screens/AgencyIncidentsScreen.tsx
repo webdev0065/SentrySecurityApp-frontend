@@ -30,6 +30,7 @@ import {
   type AgencyIncident,
 } from '../../../services/agencyApiService';
 import ScalePressable from '../../../components/common/ScalePressable';
+import IncidentStatusModal from '../components/IncidentStatusModal';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencyIncidents'>;
 type Severity = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -61,6 +62,8 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [incidents, setIncidents] = useState<AgencyIncident[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [selectedIncident, setSelectedIncident] =
+    useState<AgencyIncident | null>(null);
   const loadIncidents = useCallback(async () => {
     try {
       setLoadError('');
@@ -164,7 +167,13 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
           ) : loadError ? (
             <Text style={s.error}>{loadError}</Text>
           ) : visible.length ? (
-            visible.map(item => <IncidentCard key={item.id} incident={item} />)
+            visible.map(item => (
+              <IncidentCard
+                key={item.id}
+                incident={item}
+                onPress={() => setSelectedIncident(item)}
+              />
+            ))
           ) : (
             <Text style={s.message}>{t('dashboard.noIncidents')}</Text>
           )}
@@ -192,16 +201,37 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
         onClose={() => setFileModalOpen(false)}
         onCreated={loadIncidents}
       />
+      <IncidentStatusModal
+        visible={Boolean(selectedIncident)}
+        incident={selectedIncident}
+        onClose={() => setSelectedIncident(null)}
+        onUpdated={updated => {
+          setIncidents(current =>
+            current.map(item =>
+              item.id === updated.id ? { ...item, ...updated } : item,
+            ),
+          );
+          setSelectedIncident(updated);
+        }}
+      />
     </SafeAreaView>
   );
 };
 
-const IncidentCard: React.FC<{ incident: AgencyIncident }> = ({ incident }) => {
+const IncidentCard: React.FC<{
+  incident: AgencyIncident;
+  onPress: () => void;
+}> = ({ incident, onPress }) => {
   const { t } = useTranslation();
   const appearance =
     incidentAppearance[incident.severity] ?? incidentAppearance.low;
   return (
-    <TouchableOpacity style={s.card}>
+    <ScalePressable
+      style={s.card}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`View ${incident.incident_code}`}
+    >
       <View style={[s.icon, { backgroundColor: appearance.tint }]}>
         <Feather
           name={appearance.icon as React.ComponentProps<typeof Feather>['name']}
@@ -227,7 +257,7 @@ const IncidentCard: React.FC<{ incident: AgencyIncident }> = ({ incident }) => {
         <Text style={s.site}>{incident.site_name}</Text>
         <Text style={s.time}>{formatIncidentTime(incident.created_at)}</Text>
       </View>
-    </TouchableOpacity>
+    </ScalePressable>
   );
 };
 

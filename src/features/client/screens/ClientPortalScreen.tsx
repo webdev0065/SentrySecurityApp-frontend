@@ -25,6 +25,7 @@ import ClientHomeContent from '../components/ClientHomeContent';
 import ClientInformationScreen, {
   type ClientInformationPage,
 } from '../components/ClientInformationScreen';
+import ClientAlerts from '../components/ClientAlerts';
 import AgencyProfileMenu from '../../dashboard/components/AgencyProfileMenu';
 import ScalePressable from '../../../components/common/ScalePressable';
 import {
@@ -162,15 +163,7 @@ export default function ClientPortalScreen() {
               />
             </Section>
           ) : null}
-          {!loading && !error && tab === 'alerts' ? (
-            <Section title={t('client.alerts')}>
-              <Empty
-                icon="bell"
-                title={t('client.noAlerts')}
-                body={t('client.noAlertsHint')}
-              />
-            </Section>
-          ) : null}
+          {!loading && !error && tab === 'alerts' ? <ClientAlerts /> : null}
           {!loading && !error && tab === 'profile' && details ? (
             <ClientProfilePanel
               details={details}

@@ -143,4 +143,14 @@ export const agencyApiService = {
       body,
       authenticated: true,
     }),
+  updateIncidentStatus: async (
+    id: number,
+    status: 'pending' | 'in_progress' | 'resolved',
+  ) =>
+    (
+      await apiRequest<{ success: boolean; data: AgencyIncident }>(
+        `/agency/incidents/${id}/status`,
+        { method: 'PATCH', body: { status }, authenticated: true },
+      )
+    ).data,
 };

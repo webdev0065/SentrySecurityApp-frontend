@@ -225,14 +225,10 @@ function InfoRow({
 const s = StyleSheet.create({
   container: { gap: spacing.lg },
   card: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.white,
+    paddingVertical: spacing.sm,
     gap: spacing.md,
   },
-  noAgencyCard: { backgroundColor: colors.light.background },
+  noAgencyCard: {},
   welcomeCard: { flexDirection: 'row', alignItems: 'center' },
   welcomeCopy: { flex: 1, gap: spacing.sm },
   heroIcon: {
@@ -337,8 +333,6 @@ const s = StyleSheet.create({
   },
   quoteCard: {
     minHeight: 112,
-    borderRadius: spacing.md,
-    backgroundColor: colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
