@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import ScalePressable from '../../../components/common/ScalePressable';
 import SuperAdminNotificationsModal from '../../superAdmin/components/SuperAdminNotificationsModal';
 import { notificationService } from '../../../services/notificationService';
 import type { AppNotification } from '../../../services/notificationService';
+import { playNotificationChime } from '../../../services/notificationSound';
 
 type Props = {
   profileMenuOpen: boolean;
@@ -34,6 +35,7 @@ const AgencyTopNavigation: React.FC<Props> = ({
   const isFocused = useIsFocused();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [internalUnreadCount, setInternalUnreadCount] = useState(0);
+  const lastUnreadCount = useRef<number | null>(null);
   const managesNotifications = !onNotificationPress;
 
   useEffect(() => {
@@ -43,7 +45,15 @@ const AgencyTopNavigation: React.FC<Props> = ({
       notificationService
         .getUnreadCount()
         .then(response => {
-          if (active) setInternalUnreadCount(response.count);
+          if (!active) return;
+          if (
+            lastUnreadCount.current !== null &&
+            response.count > lastUnreadCount.current
+          ) {
+            playNotificationChime();
+          }
+          lastUnreadCount.current = response.count;
+          setInternalUnreadCount(response.count);
         })
         .catch(() => {
           if (active) setInternalUnreadCount(0);

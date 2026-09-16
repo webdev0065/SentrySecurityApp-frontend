@@ -60,6 +60,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                   ? 'SuperAdminFlow'
                   : accountType === 'client'
                   ? 'ClientFlow'
+                  : accountType === 'guard'
+                  ? 'GuardFlow'
                   : 'MainFlow',
             },
           ],

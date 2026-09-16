@@ -30,6 +30,11 @@ export type MainStackParamList = {
   AgencyGuards: { openAddGuard?: boolean } | undefined;
 };
 
+export type GuardStackParamList = {
+  GuardDuty: undefined;
+  GuardReport: undefined;
+};
+
 // NEW — root navigator that nests the three feature navigators
 export type RootStackParamList = {
   SuperAdminFlow: undefined;
@@ -37,4 +42,5 @@ export type RootStackParamList = {
   AuthFlow: NavigatorScreenParams<AuthStackParamList> | undefined;
   MainFlow: undefined;
   ClientFlow: undefined;
+  GuardFlow: undefined;
 };
