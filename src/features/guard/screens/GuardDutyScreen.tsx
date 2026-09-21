@@ -97,6 +97,10 @@ const GuardDutyScreen = () => {
       navigation.navigate('GuardReport');
       return;
     }
+    if (tab === 'patrol') {
+      navigation.navigate('GuardPatrol');
+      return;
+    }
     if (tab !== 'duty')
       showUnavailable(tab.charAt(0).toUpperCase() + tab.slice(1));
   };

@@ -33,6 +33,7 @@ export type MainStackParamList = {
 export type GuardStackParamList = {
   GuardDuty: undefined;
   GuardReport: undefined;
+  GuardPatrol: undefined;
 };
 
 // NEW — root navigator that nests the three feature navigators

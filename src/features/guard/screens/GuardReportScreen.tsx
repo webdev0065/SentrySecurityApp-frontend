@@ -79,6 +79,7 @@ const GuardReportScreen = () => {
   const handleTab = (tab: GuardTab) => {
     setProfileMenuOpen(false);
     if (tab === 'duty') navigation.navigate('GuardDuty');
+    else if (tab === 'patrol') navigation.navigate('GuardPatrol');
     else if (tab !== 'report')
       Alert.alert(tab, 'This guard feature will be available soon.');
   };

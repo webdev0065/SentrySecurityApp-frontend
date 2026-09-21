@@ -21,6 +21,21 @@ export type GuardReport = {
   created_at: string;
 };
 
+export type PatrolCheckpoint = {
+  id: number;
+  name: string;
+  sequence_order: number;
+  scanned: boolean;
+  scanned_at?: string | null;
+};
+
+export type PatrolRoundState = {
+  round: { id: number; status: 'in_progress' | 'completed' };
+  progress: { scanned: number; total: number; percent: number };
+  next_checkpoint: PatrolCheckpoint | null;
+  checkpoints: PatrolCheckpoint[];
+};
+
 export const guardService = {
   getDutyDetails: async () =>
     (
@@ -64,5 +79,43 @@ export const guardService = {
           authenticated: true,
         },
       )
+    ).data,
+  getActivePatrolRound: async () =>
+    (
+      await apiRequest<{ success: boolean; data: PatrolRoundState | null }>(
+        '/guard/patrol/rounds/active',
+        { authenticated: true },
+      )
+    ).data,
+  getPatrolCheckpoints: async () =>
+    (
+      await apiRequest<{
+        success: boolean;
+        data: {
+          site_id: number;
+          site_name: string;
+          checkpoints: PatrolCheckpoint[];
+        };
+      }>('/guard/patrol/checkpoints', { authenticated: true })
+    ).data,
+  startPatrolRound: async () =>
+    (
+      await apiRequest<{
+        success: boolean;
+        data: { id: number; checkpoints: PatrolCheckpoint[] };
+      }>('/guard/patrol/rounds/start', { method: 'POST', authenticated: true })
+    ).data,
+  scanPatrolCheckpoint: async (id: number) =>
+    (
+      await apiRequest<{
+        success: boolean;
+        data: {
+          progress: PatrolRoundState['progress'];
+          round_completed: boolean;
+        };
+      }>(`/guard/patrol/checkpoints/${id}/scan`, {
+        method: 'POST',
+        authenticated: true,
+      })
     ).data,
 };
