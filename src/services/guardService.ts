@@ -2,7 +2,7 @@ import { apiRequest } from './apiClient';
 
 export type GuardDutyDetails = {
   id: number;
-  guard_code: string;
+  guard_code?: string;
   full_name: string;
   status: 'on_duty' | 'off_duty';
   site_id?: number | null;
@@ -11,6 +11,27 @@ export type GuardDutyDetails = {
   coverage_plan?: 'day_shift' | 'night_watch' | '24x7';
   start_time?: string | null;
   end_time?: string | null;
+};
+
+export type GuardProfile = GuardDutyDetails & {
+  mobile_number?: string | null;
+  email?: string | null;
+  address?: string | null;
+  age?: number | null;
+  gender?: 'male' | 'female' | 'other' | null;
+  joining_date?: string | null;
+  shift_hours?: number | null;
+  basic_salary?: number | null;
+  allowances?: number | null;
+};
+
+export type GuardProfileUpdate = {
+  fullName: string;
+  mobileNumber: string;
+  email: string;
+  address?: string | null;
+  age?: number | null;
+  gender?: 'male' | 'female' | 'other' | null;
 };
 
 export type GuardReport = {
@@ -42,6 +63,23 @@ export const guardService = {
       await apiRequest<{ success: boolean; data: GuardDutyDetails }>(
         '/guard/me',
         {
+          authenticated: true,
+        },
+      )
+    ).data,
+  getProfile: async () =>
+    (
+      await apiRequest<{ success: boolean; data: GuardProfile }>('/guard/me', {
+        authenticated: true,
+      })
+    ).data,
+  updateProfile: async (body: GuardProfileUpdate) =>
+    (
+      await apiRequest<{ success: boolean; data: GuardProfile }>(
+        '/guard/profile',
+        {
+          method: 'PUT',
+          body,
           authenticated: true,
         },
       )

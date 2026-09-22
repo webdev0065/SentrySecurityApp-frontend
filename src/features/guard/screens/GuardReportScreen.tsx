@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -25,7 +28,7 @@ import {
 } from '../../../services/guardService';
 import type { GuardStackParamList } from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
-import { scaleFont, scaleHeight } from '../../../styles/dimensions';
+import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
 import { typography } from '../../../styles/typography';
 
@@ -80,12 +83,15 @@ const GuardReportScreen = () => {
     setProfileMenuOpen(false);
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'patrol') navigation.navigate('GuardPatrol');
+    else if (tab === 'profile') navigation.navigate('GuardProfile');
     else if (tab !== 'report')
       Alert.alert(tab, 'This guard feature will be available soon.');
   };
+  const submitDisabled = submitting || !notes.trim();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" />
       <GuardTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
@@ -94,80 +100,94 @@ const GuardReportScreen = () => {
           .charAt(0)
           .toUpperCase()}
       />
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View>
-          <View style={styles.heading}>
-            <View style={styles.sectionMark} />
-            <Text style={styles.headingText}>FILE INCIDENT REPORT</Text>
-          </View>
-          <Text style={styles.label}>Severity</Text>
-          <View style={styles.severityRow}>
-            {severities.map(option => (
-              <ScalePressable
-                key={option.key}
-                style={[
-                  styles.severityOption,
-                  severity === option.key && styles.severityActive,
-                ]}
-                onPress={() => setSeverity(option.key)}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: severity === option.key }}
-              >
-                <Text
-                  style={[
-                    styles.severityText,
-                    severity === option.key && styles.severityTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </ScalePressable>
-            ))}
-          </View>
-          <Text style={styles.label}>What happened</Text>
-          <TextInput
-            value={notes}
-            onChangeText={setNotes}
-            style={styles.notes}
-            placeholder="Describe the incident, location, and action taken…"
-            placeholderTextColor={colors.textGray}
-            multiline
-            textAlignVertical="top"
-            accessibilityLabel="Incident details"
-          />
-          <ScalePressable
-            style={styles.attach}
-            onPress={() =>
-              Alert.alert(
-                'Photo attachment',
-                'Photo attachment will be enabled when the app camera or gallery picker is connected.',
-              )
-            }
-            accessibilityLabel="Attach photo"
-          >
-            <Feather
-              name="camera"
-              size={scaleFont(22)}
-              color={colors.textGray}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={styles.sectionMark} />
+              <Text style={styles.sectionTitle}>REPORT DETAILS</Text>
+            </View>
+
+            <Text style={styles.label}>Severity</Text>
+            <View style={styles.severityRow}>
+              {severities.map(option => {
+                const active = severity === option.key;
+                return (
+                  <ScalePressable
+                    key={option.key}
+                    style={[
+                      styles.severityOption,
+                      active && styles.severityActive,
+                    ]}
+                    onPress={() => setSeverity(option.key)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text
+                      style={[
+                        styles.severityText,
+                        active && styles.severityTextActive,
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                  </ScalePressable>
+                );
+              })}
+            </View>
+
+            <Text style={styles.label}>What happened</Text>
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              style={styles.notes}
+              placeholder="Describe the incident, location, and action taken…"
+              placeholderTextColor={colors.textGray}
+              multiline
+              textAlignVertical="top"
+              accessibilityLabel="Incident details"
             />
-            <Text style={styles.attachText}>Attach photo</Text>
-          </ScalePressable>
+
+            <Text style={styles.label}>Attachments</Text>
+            <ScalePressable
+              style={styles.attach}
+              onPress={() =>
+                Alert.alert(
+                  'Photo attachment',
+                  'Photo attachment will be enabled when the app camera or gallery picker is connected.',
+                )
+              }
+              accessibilityLabel="Attach photo"
+            >
+              <Feather
+                name="camera"
+                size={scaleFont(22)}
+                color={colors.textGray}
+              />
+              <Text style={styles.attachText}>Attach photo</Text>
+            </ScalePressable>
+          </View>
+
           <ScalePressable
-            style={styles.submit}
+            style={[styles.submit, submitDisabled && styles.submitDisabled]}
             onPress={submit}
-            disabled={submitting || !notes.trim()}
+            disabled={submitDisabled}
             accessibilityLabel="Submit report"
           >
             <Text style={styles.submitText}>
               {submitting ? 'Submitting…' : 'Submit Report'}
             </Text>
           </ScalePressable>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
       <GuardBottomNavigation activeTab="report" onTabPress={handleTab} />
       {profileMenuOpen ? (
         <ScalePressable
@@ -187,10 +207,7 @@ const GuardReportScreen = () => {
           }}
           onMyProfile={() => {
             setProfileMenuOpen(false);
-            Alert.alert(
-              'Profile',
-              'Your guard profile will be available soon.',
-            );
+            navigation.navigate('GuardProfile');
           }}
           onLogout={() => setProfileMenuOpen(false)}
         />
@@ -205,75 +222,87 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light.background,
     position: 'relative',
   },
+  flex: { flex: 1 },
   scroll: { flex: 1 },
   content: {
     padding: spacing.md,
     paddingBottom: spacing.lg,
-    gap: spacing.xs,
+    gap: spacing.md,
   },
-  heading: {
+  card: {
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    borderRadius: scaleWidth(14),
+    backgroundColor: colors.white,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
   sectionMark: {
-    width: 3,
-    height: scaleHeight(18),
+    width: spacing.xs,
+    height: scaleHeight(20),
+    borderRadius: 2,
     backgroundColor: colors.gold,
     marginRight: spacing.sm,
-    borderRadius: 2,
   },
-  headingText: {
+  sectionTitle: {
+    flex: 1,
     color: colors.primary,
     fontFamily: typography.fontFamily,
-    fontSize: scaleFont(typography.sizes.md),
+    fontSize: scaleFont(typography.sizes.sm),
     fontWeight: typography.weights.bold,
-    letterSpacing: scaleFont(1),
+    letterSpacing: scaleFont(1.6),
   },
   label: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     marginBottom: spacing.xs,
     color: colors.primary,
     fontFamily: typography.fontFamily,
     fontSize: scaleFont(typography.sizes.sm),
-    fontWeight: typography.weights.medium,
+    fontWeight: typography.weights.semiBold,
   },
   severityRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
   },
   severityOption: {
     flex: 1,
-    paddingVertical: scaleHeight(10),
+    minHeight: scaleHeight(46),
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: spacing.xs,
+    borderRadius: scaleWidth(10),
     backgroundColor: colors.white,
   },
   severityActive: {
-    borderColor: colors.gold,
-    backgroundColor: '#FFF8E7',
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
   },
   severityText: {
-    color: colors.textGray,
+    color: colors.primary,
     fontFamily: typography.fontFamily,
     fontSize: scaleFont(typography.sizes.sm),
     fontWeight: typography.weights.medium,
   },
   severityTextActive: {
-    color: colors.primary,
+    color: colors.white,
     fontWeight: typography.weights.semiBold,
   },
   notes: {
-    minHeight: scaleHeight(130),
-    marginBottom: spacing.sm,
-    padding: spacing.sm,
+    minHeight: scaleHeight(140),
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: spacing.xs,
+    borderRadius: scaleWidth(10),
     backgroundColor: colors.white,
     color: colors.primary,
     fontFamily: typography.fontFamily,
@@ -281,16 +310,16 @@ const styles = StyleSheet.create({
     lineHeight: scaleFont(typography.sizes.md + 4),
   },
   attach: {
-    paddingVertical: scaleHeight(11),
+    minHeight: scaleHeight(48),
     borderWidth: 1,
+    borderStyle: 'dashed',
     borderColor: colors.border,
-    borderRadius: spacing.xs,
-    backgroundColor: colors.white,
+    borderRadius: scaleWidth(10),
+    backgroundColor: colors.light.background,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
+    gap: spacing.sm,
   },
   attachText: {
     color: colors.primary,
@@ -299,17 +328,24 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semiBold,
   },
   submit: {
-    paddingVertical: scaleHeight(13),
-    borderRadius: spacing.xs,
+    minHeight: scaleHeight(48),
+    borderRadius: scaleWidth(10),
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
+  submitDisabled: { opacity: 0.5 },
   submitText: {
     color: colors.white,
     fontFamily: typography.fontFamily,
     fontSize: scaleFont(typography.sizes.md),
     fontWeight: typography.weights.semiBold,
+    letterSpacing: scaleFont(0.4),
   },
   backdrop: { ...StyleSheet.absoluteFill, zIndex: 10 },
 });

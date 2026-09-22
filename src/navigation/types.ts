@@ -30,10 +30,23 @@ export type MainStackParamList = {
   AgencyGuards: { openAddGuard?: boolean } | undefined;
 };
 
+export type GuardSectionKey =
+  | 'personalInfo'
+  | 'documents'
+  | 'bankDetails'
+  | 'emergencyContact'
+  | 'settings';
+
 export type GuardStackParamList = {
   GuardDuty: undefined;
   GuardReport: undefined;
   GuardPatrol: undefined;
+  GuardProfile: undefined;
+  GuardPersonalInfo: undefined;
+  GuardDocuments: undefined;
+  GuardBankDetails: undefined;
+  GuardEmergencyContact: undefined;
+  GuardSection: { section: GuardSectionKey };
 };
 
 // NEW — root navigator that nests the three feature navigators

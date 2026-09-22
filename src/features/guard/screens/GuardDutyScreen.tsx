@@ -4,6 +4,7 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -101,12 +102,17 @@ const GuardDutyScreen = () => {
       navigation.navigate('GuardPatrol');
       return;
     }
+    if (tab === 'profile') {
+      navigation.navigate('GuardProfile');
+      return;
+    }
     if (tab !== 'duty')
       showUnavailable(tab.charAt(0).toUpperCase() + tab.slice(1));
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" />
       <GuardTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
@@ -364,7 +370,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  dutyCardActive: { backgroundColor: colors.white, borderColor: colors.gold },
+  dutyCardActive: {
+    backgroundColor: colors.white,
+    borderColor: colors.gold,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
   dutyCircle: {
     width: scaleWidth(142),
     height: scaleWidth(142),
@@ -398,9 +412,11 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(typography.sizes.sm),
   },
   card: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    borderRadius: scaleWidth(14),
+    backgroundColor: colors.white,
   },
   cardTitleRow: {
     minHeight: scaleHeight(28),
@@ -411,6 +427,7 @@ const styles = StyleSheet.create({
   sectionMark: {
     height: scaleHeight(23),
     width: spacing.xs,
+    borderRadius: 2,
     backgroundColor: colors.gold,
     marginRight: spacing.sm,
   },
@@ -432,7 +449,7 @@ const styles = StyleSheet.create({
   iconBox: {
     height: spacing.xxxl,
     width: spacing.xxxl,
-    borderRadius: spacing.sm,
+    borderRadius: spacing.lg,
     backgroundColor: colors.light.background,
     alignItems: 'center',
     justifyContent: 'center',

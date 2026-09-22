@@ -4,6 +4,7 @@ import {
   Alert,
   RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -27,7 +28,7 @@ import {
 } from '../../../services/guardService';
 import type { GuardStackParamList } from '../../../navigation/types';
 import { colors } from '../../../styles/colors';
-import { scaleFont, scaleHeight } from '../../../styles/dimensions';
+import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
 import { typography } from '../../../styles/typography';
 
@@ -163,12 +164,14 @@ export default function GuardPatrolScreen() {
     setProfileMenuOpen(false);
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'report') navigation.navigate('GuardReport');
+    else if (tab === 'profile') navigation.navigate('GuardProfile');
     else if (tab !== 'patrol')
       Alert.alert(tab, 'This guard feature will be available soon.');
   };
 
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" />
       <GuardTopNavigation
         profileMenuOpen={profileMenuOpen}
         onProfilePress={() => setProfileMenuOpen(open => !open)}
@@ -272,7 +275,13 @@ export default function GuardPatrolScreen() {
               </Text>
             </View>
             <View style={s.track}>
-              <View style={[s.fill, { width: `${progress.percent}%` }]} />
+              <View
+                style={[
+                  s.fill,
+                  progress.percent === 100 && s.fillComplete,
+                  { width: `${progress.percent}%` },
+                ]}
+              />
             </View>
           </Section>
           {nextCheckpoint ? (
@@ -346,10 +355,7 @@ export default function GuardPatrolScreen() {
           }}
           onMyProfile={() => {
             setProfileMenuOpen(false);
-            Alert.alert(
-              'Profile',
-              'Your guard profile will be available soon.',
-            );
+            navigation.navigate('GuardProfile');
           }}
           onLogout={() => setProfileMenuOpen(false)}
         />
@@ -428,9 +434,11 @@ const s = StyleSheet.create({
     fontSize: scaleFont(typography.sizes.sm),
   },
   section: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+    borderRadius: scaleWidth(14),
+    backgroundColor: colors.white,
     gap: spacing.sm,
   },
   sectionHeader: {
@@ -441,6 +449,7 @@ const s = StyleSheet.create({
   sectionMark: {
     width: spacing.xs,
     height: scaleHeight(22),
+    borderRadius: 2,
     backgroundColor: colors.gold,
   },
   sectionTitle: {
@@ -476,6 +485,7 @@ const s = StyleSheet.create({
     borderRadius: spacing.sm,
     backgroundColor: colors.gold,
   },
+  fillComplete: { backgroundColor: colors.status.success },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   locationIcon: {
     height: spacing.xxxl,
@@ -540,7 +550,7 @@ const s = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.md,
     borderRadius: spacing.md,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#E2F5E9',
   },
   successTitle: {
     color: colors.status.success,
