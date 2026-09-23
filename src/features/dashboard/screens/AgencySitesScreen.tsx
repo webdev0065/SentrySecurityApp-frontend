@@ -95,6 +95,7 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
     if (tab === 'guards') navigation.navigate('AgencyGuards');
     if (tab === 'incidents') navigation.navigate('AgencyIncidents');
     if (tab === 'profile') navigation.navigate('AgencyProfile');
+    if (tab === 'plan') navigation.navigate('AgencyPlan');
   };
   return (
     <SafeAreaView style={s.safe} edges={['top', 'bottom']}>

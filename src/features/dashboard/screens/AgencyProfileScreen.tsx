@@ -187,6 +187,7 @@ const AgencyProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (tab === 'guards') navigation.navigate('AgencyGuards');
     if (tab === 'sites') navigation.navigate('AgencySites');
     if (tab === 'incidents') navigation.navigate('AgencyIncidents');
+    if (tab === 'plan') navigation.navigate('AgencyPlan');
   };
   const initial = (form.full_name || form.agency_name || 'A')
     .trim()

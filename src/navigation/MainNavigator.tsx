@@ -5,6 +5,7 @@ import AgencyOverviewScreen from '../features/dashboard/screens/AgencyOverviewSc
 import AgencyIncidentsScreen from '../features/dashboard/screens/AgencyIncidentsScreen';
 import AgencySitesScreen from '../features/dashboard/screens/AgencySitesScreen';
 import AgencyProfileScreen from '../features/dashboard/screens/AgencyProfileScreen';
+import AgencyPlanScreen from '../features/dashboard/screens/AgencyPlanScreen';
 import AgencyGuardsScreen from '../features/dashboard/screens/AgencyGuardsScreen';
 
 import { MainStackParamList } from './types';
@@ -23,6 +24,7 @@ const MainNavigator = () => {
       <Stack.Screen name="AgencySites" component={AgencySitesScreen} />
       <Stack.Screen name="AgencyProfile" component={AgencyProfileScreen} />
       <Stack.Screen name="AgencyGuards" component={AgencyGuardsScreen} />
+      <Stack.Screen name="AgencyPlan" component={AgencyPlanScreen} />
     </Stack.Navigator>
   );
 };

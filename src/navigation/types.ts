@@ -28,6 +28,7 @@ export type MainStackParamList = {
   AgencySites: { openAddSite?: boolean; openRequestId?: number } | undefined;
   AgencyProfile: undefined;
   AgencyGuards: { openAddGuard?: boolean } | undefined;
+  AgencyPlan: undefined;
 };
 
 export type GuardSectionKey =

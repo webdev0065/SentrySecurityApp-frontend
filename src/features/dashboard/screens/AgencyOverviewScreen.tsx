@@ -263,6 +263,7 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
           if (tab === 'incidents') navigation.navigate('AgencyIncidents');
           if (tab === 'sites') navigation.navigate('AgencySites');
           if (tab === 'profile') navigation.navigate('AgencyProfile');
+          if (tab === 'plan') navigation.navigate('AgencyPlan');
         }}
       />
       {profileMenuOpen ? (

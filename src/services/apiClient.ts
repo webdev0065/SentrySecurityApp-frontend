@@ -2,9 +2,12 @@ import { API_BASE_URL } from '../config/api';
 import { session } from './session';
 
 export class ApiError extends Error {
-  constructor(message: string) {
+  status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = 'ApiError';
+    this.status = status;
   }
 }
 
@@ -36,6 +39,7 @@ export async function apiRequest<T>(
       payload.error ||
         payload.message ||
         'Something went wrong. Please try again.',
+      response.status,
     );
   }
   return payload as T;

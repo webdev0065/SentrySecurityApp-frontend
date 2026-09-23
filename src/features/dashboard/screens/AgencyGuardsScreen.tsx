@@ -91,6 +91,7 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation, route }) => {
     if (tab === 'sites') navigation.navigate('AgencySites');
     if (tab === 'incidents') navigation.navigate('AgencyIncidents');
     if (tab === 'profile') navigation.navigate('AgencyProfile');
+    if (tab === 'plan') navigation.navigate('AgencyPlan');
   };
 
   return (
