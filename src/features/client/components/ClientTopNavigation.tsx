@@ -18,6 +18,7 @@ export default function ClientTopNavigation({
       onProfilePress={onProfilePress}
       onBeforeOpenNotifications={onNotificationOpen}
       avatarInitials={avatarInitials || 'C'}
+      enableIncidentBuzzer={false}
     />
   );
 }

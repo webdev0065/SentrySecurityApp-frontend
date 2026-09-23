@@ -29,9 +29,10 @@ import AgencyProfileMenu from '../../dashboard/components/AgencyProfileMenu';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { GuardStackParamList } from '../../../navigation/types';
+import { useTranslation } from 'react-i18next';
 
-const formatTime = (time?: string | null) => {
-  if (!time) return 'Schedule not set';
+const formatTime = (time?: string | null, notSetLabel?: string) => {
+  if (!time) return notSetLabel ?? 'Schedule not set';
   const [hour = '0', minute = '00'] = time.split(':');
   const number = Number(hour);
   const suffix = number >= 12 ? 'PM' : 'AM';
@@ -39,6 +40,7 @@ const formatTime = (time?: string | null) => {
 };
 
 const GuardDutyScreen = () => {
+  const { t } = useTranslation();
   const [guard, setGuard] = useState<GuardDutyDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,21 +58,25 @@ const GuardDutyScreen = () => {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : 'Unable to load your duty details.',
+          : t('guard.duty.loadFailed'),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
   useEffect(() => {
     load();
   }, [load]);
 
   const isOnDuty = guard?.status === 'on_duty';
+  const notSetLabel = t('guard.duty.scheduleNotSet');
   const assignmentText = useMemo(() => {
-    if (!guard?.site_name) return 'No active site assigned';
-    return `${formatTime(guard.start_time)} – ${formatTime(guard.end_time)}`;
-  }, [guard]);
+    if (!guard?.site_name) return t('guard.duty.noActiveSite');
+    return `${formatTime(guard.start_time, notSetLabel)} – ${formatTime(
+      guard.end_time,
+      notSetLabel,
+    )}`;
+  }, [guard, notSetLabel, t]);
 
   const toggleDuty = async () => {
     if (!guard || saving) return;
@@ -81,17 +87,17 @@ const GuardDutyScreen = () => {
       );
     } catch (updateError) {
       Alert.alert(
-        'Unable to update duty',
+        t('guard.duty.updateFailed'),
         updateError instanceof Error
           ? updateError.message
-          : 'Please try again.',
+          : t('guard.common.tryAgain'),
       );
     } finally {
       setSaving(false);
     }
   };
   const showUnavailable = (label: string) =>
-    Alert.alert(label, 'This guard feature will be available soon.');
+    Alert.alert(label, t('guard.common.featureSoon'));
   const handleTab = (tab: GuardTab) => {
     setActiveTab(tab);
     if (tab === 'report') {
@@ -106,8 +112,9 @@ const GuardDutyScreen = () => {
       navigation.navigate('GuardProfile');
       return;
     }
-    if (tab !== 'duty')
-      showUnavailable(tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (tab !== 'duty') {
+      showUnavailable(t('guard.tabs.schedule'));
+    }
   };
 
   return (
@@ -124,7 +131,7 @@ const GuardDutyScreen = () => {
       {loading ? (
         <View style={styles.state}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={styles.muted}>Loading duty dashboard…</Text>
+          <Text style={styles.muted}>{t('guard.duty.loading')}</Text>
         </View>
       ) : null}
       {!loading && error ? (
@@ -137,7 +144,7 @@ const GuardDutyScreen = () => {
               load();
             }}
           >
-            <Text style={styles.retryText}>Try again</Text>
+            <Text style={styles.retryText}>{t('guardProfile.tryAgain')}</Text>
           </ScalePressable>
         </View>
       ) : null}
@@ -161,7 +168,9 @@ const GuardDutyScreen = () => {
             onPress={toggleDuty}
             disabled={saving}
             accessibilityRole="button"
-            accessibilityLabel={isOnDuty ? 'Clock out' : 'Clock in'}
+            accessibilityLabel={
+              isOnDuty ? t('guard.duty.clockOut') : t('guard.duty.clockIn')
+            }
           >
             <View
               style={[styles.dutyCircle, isOnDuty && styles.dutyCircleActive]}
@@ -172,39 +181,43 @@ const GuardDutyScreen = () => {
                 color={colors.primary}
               />
               <Text style={styles.dutyLabel}>
-                {isOnDuty ? 'ON DUTY' : 'OFF DUTY'}
+                {isOnDuty ? t('guard.duty.onDuty') : t('guard.duty.offDuty')}
               </Text>
             </View>
             <Text style={styles.dutyAction}>
               {saving
-                ? 'Updating…'
+                ? t('guard.duty.updating')
                 : isOnDuty
-                ? 'Tap to clock out'
-                : 'Tap to clock in'}
+                ? t('guard.duty.tapToClockOut')
+                : t('guard.duty.tapToClockIn')}
             </Text>
             <Text style={styles.dutyHint}>
               {isOnDuty
-                ? 'Your duty status is active'
-                : 'Your agency will see you as available'}
+                ? t('guard.duty.statusActive')
+                : t('guard.duty.statusAvailable')}
             </Text>
           </ScalePressable>
 
           <Card
-            title="CURRENT ASSIGNMENT"
-            action={() => showUnavailable('Assignment details')}
+            title={t('guard.duty.currentAssignment')}
+            action={() => showUnavailable(t('guard.duty.assignmentDetails'))}
           >
             <View style={styles.assignmentRow}>
               <IconBox icon="map-pin" />
               <View style={styles.flex}>
                 <Text style={styles.assignmentName}>
-                  {guard.site_name || 'No site assigned'}
+                  {guard.site_name || t('guard.duty.noSiteAssigned')}
                 </Text>
                 <Text style={styles.muted}>
                   {guard.site_address || assignmentText}
                 </Text>
               </View>
               {guard.site_name ? (
-                <Badge label={isOnDuty ? 'ACTIVE' : 'ASSIGNED'} />
+                <Badge
+                  label={
+                    isOnDuty ? t('guard.duty.active') : t('guard.duty.assigned')
+                  }
+                />
               ) : null}
             </View>
             {guard.site_name && guard.site_address ? (
@@ -214,17 +227,19 @@ const GuardDutyScreen = () => {
             ) : null}
           </Card>
 
-          <Card title="RADIO CONTACT">
+          <Card title={t('guard.duty.radioContact')}>
             <View style={styles.assignmentRow}>
               <IconBox icon="radio" />
               <View style={styles.flex}>
-                <Text style={styles.assignmentName}>Control room support</Text>
-                <Text style={styles.muted}>Channel 1 · 24×7 Support</Text>
+                <Text style={styles.assignmentName}>
+                  {t('guard.duty.controlRoom')}
+                </Text>
+                <Text style={styles.muted}>{t('guard.duty.channel')}</Text>
               </View>
               <ScalePressable
                 style={styles.call}
-                onPress={() => showUnavailable('Call control room')}
-                accessibilityLabel="Call control room"
+                onPress={() => showUnavailable(t('guard.duty.callControlRoom'))}
+                accessibilityLabel={t('guard.duty.callControlRoom')}
               >
                 <Feather
                   name="phone"
@@ -235,13 +250,13 @@ const GuardDutyScreen = () => {
             </View>
           </Card>
           <Card
-            title="TODAY’S PHOTO LOG"
-            action={() => showUnavailable('Photo log')}
+            title={t('guard.duty.photoLogTitle')}
+            action={() => showUnavailable(t('guard.duty.photoLog'))}
           >
             <View style={styles.assignmentRow}>
               <IconBox icon="image" />
               <Text style={[styles.muted, styles.flex]}>
-                No clock-ins captured yet today.
+                {t('guard.duty.photoEmpty')}
               </Text>
             </View>
           </Card>
@@ -258,7 +273,7 @@ const GuardDutyScreen = () => {
         <ScalePressable
           style={styles.backdrop}
           onPress={() => setProfileMenuOpen(false)}
-          accessibilityLabel="Close profile menu"
+          accessibilityLabel={t('guard.common.closeProfileMenu')}
         >
           <View />
         </ScalePressable>
@@ -266,8 +281,10 @@ const GuardDutyScreen = () => {
       {profileMenuOpen ? (
         <AgencyProfileMenu
           identity={{
-            name: guard?.full_name || 'Guard',
-            company: guard?.guard_code ? `Badge ID ${guard.guard_code}` : '',
+            name: guard?.full_name || t('guard.common.guardFallback'),
+            company: guard?.guard_code
+              ? t('guard.common.badgeId', { id: guard.guard_code })
+              : '',
             initials: (guard?.full_name || 'G').trim().charAt(0).toUpperCase(),
           }}
           onMyProfile={() => {

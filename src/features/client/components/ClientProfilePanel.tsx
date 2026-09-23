@@ -313,7 +313,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.light.background,
+    backgroundColor: colors.white,
   },
   input: {
     flex: 1,

@@ -41,7 +41,6 @@ type FormState = {
   email: string;
   mobileNumber: string;
   address: string;
-  age: string;
   gender: 'male' | 'female' | 'other' | '';
 };
 
@@ -50,7 +49,6 @@ const emptyForm: FormState = {
   email: '',
   mobileNumber: '',
   address: '',
-  age: '',
   gender: '',
 };
 
@@ -76,7 +74,6 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
         email: data.email || '',
         mobileNumber: stripCountryCode(data.mobile_number),
         address: data.address || '',
-        age: data.age != null ? String(data.age) : '',
         gender: (data.gender as FormState['gender']) || '',
       });
     } catch (loadError) {
@@ -106,7 +103,6 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
         email: profile.email || '',
         mobileNumber: stripCountryCode(profile.mobile_number),
         address: profile.address || '',
-        age: profile.age != null ? String(profile.age) : '',
         gender: (profile.gender as FormState['gender']) || '',
       });
     }
@@ -120,12 +116,6 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
     }
     if (form.mobileNumber.replace(/\D/g, '').length !== 10) {
       return t('guardProfile.validation.mobileInvalid');
-    }
-    if (form.age.trim()) {
-      const age = Number(form.age);
-      if (Number.isNaN(age) || age < 18 || age > 65) {
-        return t('guardProfile.validation.ageInvalid');
-      }
     }
     return null;
   };
@@ -141,7 +131,6 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
       email: form.email.trim(),
       mobileNumber: form.mobileNumber.trim(),
       address: form.address.trim() || null,
-      age: form.age.trim() ? Number(form.age) : null,
       gender: form.gender || null,
     };
     try {
@@ -153,7 +142,6 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
         email: updated.email || '',
         mobileNumber: stripCountryCode(updated.mobile_number),
         address: updated.address || '',
-        age: updated.age != null ? String(updated.age) : '',
         gender: (updated.gender as FormState['gender']) || '',
       });
       setEditing(false);
@@ -275,17 +263,6 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
                   placeholder={t('dashboard.addressNotProvided')}
                   multiline
                 />
-                <Field
-                  label={t('guardProfile.age')}
-                  value={form.age}
-                  editing={editing}
-                  onChangeText={text =>
-                    update('age', text.replace(/\D/g, '').slice(0, 2))
-                  }
-                  placeholder={t('guardProfile.notAvailable')}
-                  keyboardType="number-pad"
-                />
-
                 <Text style={s.fieldLabel}>{t('guardProfile.gender')}</Text>
                 {editing ? (
                   <View style={s.genderRow}>
@@ -311,7 +288,10 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
                 ) : (
                   <View style={s.fieldBox}>
                     <Text
-                      style={[s.fieldValue, !profile?.gender && s.fieldValueMuted]}
+                      style={[
+                        s.fieldValue,
+                        !profile?.gender && s.fieldValueMuted,
+                      ]}
                     >
                       {profile?.gender
                         ? t(`guardProfile.genderOptions.${profile.gender}`)
@@ -375,7 +355,9 @@ const GuardPersonalInfoScreen: React.FC<Props> = ({ navigation }) => {
                   accessibilityRole="button"
                 >
                   <Feather name="edit-2" size={f(18)} color={colors.white} />
-                  <Text style={s.saveText}>{t('guardProfile.editProfile')}</Text>
+                  <Text style={s.saveText}>
+                    {t('guardProfile.editProfile')}
+                  </Text>
                 </ScalePressable>
               )}
             </>

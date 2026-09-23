@@ -27,18 +27,20 @@ import {
   type GuardReport,
 } from '../../../services/guardService';
 import type { GuardStackParamList } from '../../../navigation/types';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
 import { typography } from '../../../styles/typography';
 
-const severities: Array<{ key: GuardReport['severity']; label: string }> = [
-  { key: 'low', label: 'Low' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'high', label: 'High' },
+const severities: Array<{ key: GuardReport['severity']; labelKey: string }> = [
+  { key: 'low', labelKey: 'guard.report.severityLow' },
+  { key: 'medium', labelKey: 'guard.report.severityMedium' },
+  { key: 'high', labelKey: 'guard.report.severityHigh' },
 ];
 
 const GuardReportScreen = () => {
+  const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<GuardStackParamList>>();
   const [guard, setGuard] = useState<GuardDutyDetails | null>(null);
@@ -56,8 +58,8 @@ const GuardReportScreen = () => {
   const submit = async () => {
     if (!notes.trim()) {
       Alert.alert(
-        'Describe the incident',
-        'Add the incident, location, and action taken before submitting.',
+        t('guard.report.describeTitle'),
+        t('guard.report.describeBody'),
       );
       return;
     }
@@ -67,13 +69,13 @@ const GuardReportScreen = () => {
       setNotes('');
       setSeverity('low');
       Alert.alert(
-        'Report submitted',
-        'Your agency has been notified about this incident.',
+        t('guard.report.submittedTitle'),
+        t('guard.report.submittedBody'),
       );
     } catch (error) {
       Alert.alert(
-        'Unable to submit report',
-        error instanceof Error ? error.message : 'Please try again.',
+        t('guard.report.submitFailed'),
+        error instanceof Error ? error.message : t('guard.common.tryAgain'),
       );
     } finally {
       setSubmitting(false);
@@ -84,8 +86,9 @@ const GuardReportScreen = () => {
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'patrol') navigation.navigate('GuardPatrol');
     else if (tab === 'profile') navigation.navigate('GuardProfile');
-    else if (tab !== 'report')
-      Alert.alert(tab, 'This guard feature will be available soon.');
+    else if (tab !== 'report') {
+      Alert.alert(t('guard.tabs.schedule'), t('guard.common.featureSoon'));
+    }
   };
   const submitDisabled = submitting || !notes.trim();
 
@@ -113,10 +116,12 @@ const GuardReportScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.sectionMark} />
-              <Text style={styles.sectionTitle}>REPORT DETAILS</Text>
+              <Text style={styles.sectionTitle}>
+                {t('guard.report.reportDetails')}
+              </Text>
             </View>
 
-            <Text style={styles.label}>Severity</Text>
+            <Text style={styles.label}>{t('guard.report.severity')}</Text>
             <View style={styles.severityRow}>
               {severities.map(option => {
                 const active = severity === option.key;
@@ -137,42 +142,44 @@ const GuardReportScreen = () => {
                         active && styles.severityTextActive,
                       ]}
                     >
-                      {option.label}
+                      {t(option.labelKey)}
                     </Text>
                   </ScalePressable>
                 );
               })}
             </View>
 
-            <Text style={styles.label}>What happened</Text>
+            <Text style={styles.label}>{t('guard.report.whatHappened')}</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
               style={styles.notes}
-              placeholder="Describe the incident, location, and action taken…"
+              placeholder={t('guard.report.notesPlaceholder')}
               placeholderTextColor={colors.textGray}
               multiline
               textAlignVertical="top"
-              accessibilityLabel="Incident details"
+              accessibilityLabel={t('guard.report.incidentDetails')}
             />
 
-            <Text style={styles.label}>Attachments</Text>
+            <Text style={styles.label}>{t('guard.report.attachments')}</Text>
             <ScalePressable
               style={styles.attach}
               onPress={() =>
                 Alert.alert(
-                  'Photo attachment',
-                  'Photo attachment will be enabled when the app camera or gallery picker is connected.',
+                  t('guard.report.photoTitle'),
+                  t('guard.report.photoBody'),
                 )
               }
-              accessibilityLabel="Attach photo"
+              accessibilityLabel={t('guard.report.attachPhoto')}
             >
               <Feather
                 name="camera"
                 size={scaleFont(22)}
                 color={colors.textGray}
               />
-              <Text style={styles.attachText}>Attach photo</Text>
+              <Text style={styles.attachText}>
+                {t('guard.report.attachPhoto')}
+              </Text>
             </ScalePressable>
           </View>
 
@@ -180,10 +187,12 @@ const GuardReportScreen = () => {
             style={[styles.submit, submitDisabled && styles.submitDisabled]}
             onPress={submit}
             disabled={submitDisabled}
-            accessibilityLabel="Submit report"
+            accessibilityLabel={t('guard.report.submitReport')}
           >
             <Text style={styles.submitText}>
-              {submitting ? 'Submitting…' : 'Submit Report'}
+              {submitting
+                ? t('guard.report.submitting')
+                : t('guard.report.submitReport')}
             </Text>
           </ScalePressable>
         </ScrollView>
@@ -193,7 +202,7 @@ const GuardReportScreen = () => {
         <ScalePressable
           style={styles.backdrop}
           onPress={() => setProfileMenuOpen(false)}
-          accessibilityLabel="Close profile menu"
+          accessibilityLabel={t('guard.common.closeProfileMenu')}
         >
           <View />
         </ScalePressable>
@@ -201,8 +210,10 @@ const GuardReportScreen = () => {
       {profileMenuOpen ? (
         <AgencyProfileMenu
           identity={{
-            name: guard?.full_name || 'Guard',
-            company: guard?.guard_code ? `Badge ID ${guard.guard_code}` : '',
+            name: guard?.full_name || t('guard.common.guardFallback'),
+            company: guard?.guard_code
+              ? t('guard.common.badgeId', { id: guard.guard_code })
+              : '',
             initials: (guard?.full_name || 'G').trim().charAt(0).toUpperCase(),
           }}
           onMyProfile={() => {

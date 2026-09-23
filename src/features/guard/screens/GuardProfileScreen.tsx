@@ -23,7 +23,10 @@ import {
   scaleWidth as w,
 } from '../../../styles/dimensions';
 import type { GuardStackParamList } from '../../../navigation/types';
-import { guardService, type GuardProfile } from '../../../services/guardService';
+import {
+  guardService,
+  type GuardProfile,
+} from '../../../services/guardService';
 import { session } from '../../../services/session';
 import GuardTopNavigation from '../components/GuardTopNavigation';
 import GuardBottomNavigation, {
@@ -71,6 +74,9 @@ const GuardProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'report') navigation.navigate('GuardReport');
     else if (tab === 'patrol') navigation.navigate('GuardPatrol');
+    else if (tab !== 'profile') {
+      Alert.alert(t('guard.tabs.schedule'), t('guard.common.featureSoon'));
+    }
   };
 
   const initial = (profile?.full_name || 'G').trim().charAt(0).toUpperCase();
@@ -230,7 +236,11 @@ const MenuRow: React.FC<{
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white, position: 'relative' },
-  content: { paddingHorizontal: w(16), paddingTop: h(12), paddingBottom: h(20) },
+  content: {
+    paddingHorizontal: w(16),
+    paddingTop: h(12),
+    paddingBottom: h(20),
+  },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -20,6 +20,7 @@ const GuardTopNavigation: React.FC<Props> = ({
     onProfilePress={onProfilePress}
     avatarInitials={avatarInitials || 'G'}
     onNotificationSelect={onNotificationSelect}
+    enableIncidentBuzzer={false}
   />
 );
 

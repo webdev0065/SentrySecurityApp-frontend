@@ -33,6 +33,17 @@ export const notificationService = {
       method: 'PUT',
       authenticated: true,
     }),
+  /** Agency buzzer poll: backend consumes the flag, returns true once per 5-min tick. */
+  pollIncidentBuzzer: () =>
+    apiRequest<{ playSound: boolean; count: number }>(
+      '/notifications/sound-pending',
+      { authenticated: true },
+    ),
+  acknowledgeIncident: (incidentId: number) =>
+    apiRequest<{ success: boolean; data: unknown }>(
+      `/agency/incidents/${incidentId}/acknowledge`,
+      { method: 'PUT', authenticated: true },
+    ),
   remove: (id: number) =>
     apiRequest<{ success: true; message: string }>(`/notifications/${id}`, {
       method: 'DELETE',

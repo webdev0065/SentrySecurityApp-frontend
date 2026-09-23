@@ -7,50 +7,55 @@ import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
 import { typography } from '../../../styles/typography';
+import { useTranslation } from 'react-i18next';
 
 export type GuardTab = 'duty' | 'schedule' | 'patrol' | 'report' | 'profile';
 type Props = { activeTab: GuardTab; onTabPress: (tab: GuardTab) => void };
 
 const tabs: Array<{
   key: GuardTab;
-  label: string;
+  labelKey: string;
   icon: React.ComponentProps<typeof Feather>['name'];
 }> = [
-  { key: 'duty', label: 'Duty', icon: 'clock' },
-  { key: 'schedule', label: 'Schedule', icon: 'calendar' },
-  { key: 'patrol', label: 'Patrol', icon: 'map-pin' },
-  { key: 'report', label: 'Report', icon: 'file-text' },
-  { key: 'profile', label: 'Profile', icon: 'user' },
+  { key: 'duty', labelKey: 'guard.tabs.duty', icon: 'clock' },
+  { key: 'schedule', labelKey: 'guard.tabs.schedule', icon: 'calendar' },
+  { key: 'patrol', labelKey: 'guard.tabs.patrol', icon: 'map-pin' },
+  { key: 'report', labelKey: 'guard.tabs.report', icon: 'file-text' },
+  { key: 'profile', labelKey: 'guard.tabs.profile', icon: 'user' },
 ];
 
-const GuardBottomNavigation: React.FC<Props> = ({ activeTab, onTabPress }) => (
-  <View style={styles.container} accessibilityRole="tablist">
-    {tabs.map(tab => {
-      const active = tab.key === activeTab;
-      return (
-        <ScalePressable
-          key={tab.key}
-          style={styles.tab}
-          onPress={() => onTabPress(tab.key)}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: active }}
-          accessibilityLabel={tab.label}
-        >
-          <View pointerEvents="none" style={styles.tabContent}>
-            <Feather
-              name={tab.icon}
-              size={scaleFont(25)}
-              color={active ? colors.status.info : colors.primary}
-            />
-            <Text style={[styles.label, active && styles.activeLabel]}>
-              {tab.label}
-            </Text>
-          </View>
-        </ScalePressable>
-      );
-    })}
-  </View>
-);
+const GuardBottomNavigation: React.FC<Props> = ({ activeTab, onTabPress }) => {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.container} accessibilityRole="tablist">
+      {tabs.map(tab => {
+        const active = tab.key === activeTab;
+        const label = t(tab.labelKey);
+        return (
+          <ScalePressable
+            key={tab.key}
+            style={styles.tab}
+            onPress={() => onTabPress(tab.key)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={label}
+          >
+            <View pointerEvents="none" style={styles.tabContent}>
+              <Feather
+                name={tab.icon}
+                size={scaleFont(25)}
+                color={active ? colors.status.info : colors.primary}
+              />
+              <Text style={[styles.label, active && styles.activeLabel]}>
+                {label}
+              </Text>
+            </View>
+          </ScalePressable>
+        );
+      })}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

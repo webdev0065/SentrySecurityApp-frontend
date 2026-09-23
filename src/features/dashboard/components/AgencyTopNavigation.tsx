@@ -10,7 +10,7 @@ import ScalePressable from '../../../components/common/ScalePressable';
 import SuperAdminNotificationsModal from '../../superAdmin/components/SuperAdminNotificationsModal';
 import { notificationService } from '../../../services/notificationService';
 import type { AppNotification } from '../../../services/notificationService';
-import { playNotificationChime } from '../../../services/notificationSound';
+import { playIncidentBuzzer } from '../../../services/notificationSound';
 
 type Props = {
   profileMenuOpen: boolean;
@@ -20,6 +20,12 @@ type Props = {
   unreadNotificationCount?: number;
   avatarInitials?: string;
   onNotificationSelect?: (notification: AppNotification) => void;
+  /**
+   * Incident buzzer polling. Only the agency app may buzz: guards and clients
+   * reuse this header, so they pass false — clients learn about an incident
+   * through their (silent) alerts after the escalation window instead.
+   */
+  enableIncidentBuzzer?: boolean;
 };
 
 const AgencyTopNavigation: React.FC<Props> = ({
@@ -30,6 +36,7 @@ const AgencyTopNavigation: React.FC<Props> = ({
   unreadNotificationCount = 0,
   avatarInitials = 'SR',
   onNotificationSelect,
+  enableIncidentBuzzer = true,
 }) => {
   const { t } = useTranslation();
   const isFocused = useIsFocused();
@@ -46,18 +53,28 @@ const AgencyTopNavigation: React.FC<Props> = ({
         .getUnreadCount()
         .then(response => {
           if (!active) return;
-          if (
-            lastUnreadCount.current !== null &&
-            response.count > lastUnreadCount.current
-          ) {
-            playNotificationChime();
-          }
+          // Incident buzzer is driven ONLY by sound-pending poll below;
+          // keep the badge count here but never play sound from it.
           lastUnreadCount.current = response.count;
           setInternalUnreadCount(response.count);
         })
         .catch(() => {
           if (active) setInternalUnreadCount(0);
         });
+      // Agency incident buzzer: backend sets sound_pending at 0/5/10/15 min
+      // after a guard files an incident; this poll consumes the flag and
+      // plays the bundled buzzer exactly once per tick. Acknowledging the
+      // incident clears the flag chain so the buzzer stops. Guard and client
+      // screens reuse this header with enableIncidentBuzzer=false, so they
+      // never poll or play it.
+      if (enableIncidentBuzzer) {
+        notificationService.pollIncidentBuzzer().then(
+          response => {
+            if (active && response.playSound) playIncidentBuzzer();
+          },
+          () => undefined,
+        );
+      }
     };
     refresh();
     const interval = setInterval(refresh, 30000);
@@ -65,7 +82,7 @@ const AgencyTopNavigation: React.FC<Props> = ({
       active = false;
       clearInterval(interval);
     };
-  }, [isFocused, managesNotifications]);
+  }, [isFocused, managesNotifications, enableIncidentBuzzer]);
 
   const visibleUnreadCount = managesNotifications
     ? internalUnreadCount

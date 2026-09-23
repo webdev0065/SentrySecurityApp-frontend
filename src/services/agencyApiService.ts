@@ -21,6 +21,10 @@ export type AgencyIncident = {
   site_name: string;
   created_at: string;
   status?: string;
+  /** Set when the agency opens the incident — stops the 15-minute buzzer loop. */
+  acknowledged_at?: string | null;
+  /** Set 15 minutes after reporting, when the incident reaches client alerts. */
+  escalated_at?: string | null;
 };
 export type AgencyGuard = {
   id: number;

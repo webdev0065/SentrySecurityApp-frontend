@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 
@@ -29,6 +30,7 @@ import {
   agencyApiService,
   type AgencyIncident,
 } from '../../../services/agencyApiService';
+import { notificationService } from '../../../services/notificationService';
 import ScalePressable from '../../../components/common/ScalePressable';
 import IncidentStatusModal from '../components/IncidentStatusModal';
 
@@ -84,9 +86,32 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
       navigation.setParams({ openFileIncident: undefined });
     }
   }, [navigation, route.params?.openFileIncident]);
+  // Reload whenever the tab regains focus so an incident filed by a guard (the
+  // one the buzzer just announced) is already on screen when the agency looks.
+  useFocusEffect(
+    useCallback(() => {
+      void loadIncidents();
+    }, [loadIncidents]),
+  );
+  // "Agency sees the incident" = opening its detail card. Acknowledge once per
+  // incident so the backend buzzer loop stops; the incident itself is NEVER
+  // removed from this list or from client alerts.
   useEffect(() => {
-    void loadIncidents();
-  }, [loadIncidents]);
+    if (selectedIncident && !selectedIncident.acknowledged_at) {
+      notificationService
+        .acknowledgeIncident(selectedIncident.id)
+        .then(() =>
+          setIncidents(current =>
+            current.map(item =>
+              item.id === selectedIncident.id
+                ? { ...item, acknowledged_at: new Date().toISOString() }
+                : item,
+            ),
+          ),
+        )
+        .catch(() => undefined);
+    }
+  }, [selectedIncident]);
   const visible =
     filter === 'All'
       ? incidents
@@ -127,16 +152,14 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={s.fileText}>+ {t('dashboard.fileIncident')}</Text>
         </ScalePressable>
         <View style={s.filters}>
-          {(['All', 'HIGH', 'MEDIUM'] as const).map(item => (
+          {(['All', 'HIGH', 'MEDIUM', 'LOW'] as const).map(item => (
             <TouchableOpacity
               key={item}
               style={[
                 s.filter,
                 {
                   backgroundColor:
-                    filter === item || (item === 'HIGH' && filter === 'HIGH')
-                      ? colors.primary
-                      : colors.white,
+                    filter === item ? colors.primary : colors.white,
                 },
               ]}
               onPress={() => setFilter(item === 'All' ? 'All' : item)}
@@ -151,16 +174,12 @@ const AgencyIncidentsScreen: React.FC<Props> = ({ navigation, route }) => {
                   ? t('dashboard.high')
                   : item === 'MEDIUM'
                   ? t('dashboard.medium')
+                  : item === 'LOW'
+                  ? t('dashboard.low')
                   : t('dashboard.all')}
               </Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity
-            style={s.filter}
-            accessibilityLabel={t('dashboard.filter')}
-          >
-            <Feather name="filter" size={f(20)} color={colors.primary} />
-          </TouchableOpacity>
         </View>
         <View style={s.list}>
           {loading ? (

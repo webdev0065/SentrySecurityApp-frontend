@@ -27,6 +27,7 @@ import {
   type PatrolRoundState,
 } from '../../../services/guardService';
 import type { GuardStackParamList } from '../../../navigation/types';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
@@ -41,6 +42,7 @@ const formatTime = (value?: string | null) =>
     : '';
 
 export default function GuardPatrolScreen() {
+  const { t } = useTranslation();
   const navigation =
     useNavigation<NativeStackNavigationProp<GuardStackParamList>>();
   const [guard, setGuard] = useState<GuardDutyDetails | null>(null);
@@ -79,12 +81,12 @@ export default function GuardPatrolScreen() {
       setError(
         loadError instanceof Error
           ? loadError.message
-          : 'Unable to load patrol details.',
+          : t('guard.patrol.loadFailed'),
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
   useEffect(() => {
     load();
   }, [load]);
@@ -147,14 +149,16 @@ export default function GuardPatrolScreen() {
         setCompleted(true);
         setRound(null);
         Alert.alert(
-          'Patrol completed',
-          'All checkpoints have been recorded successfully.',
+          t('guard.patrol.completedTitle'),
+          t('guard.patrol.completedBody'),
         );
       }
     } catch (scanError) {
       Alert.alert(
-        'Unable to update patrol',
-        scanError instanceof Error ? scanError.message : 'Please try again.',
+        t('guard.patrol.updateFailed'),
+        scanError instanceof Error
+          ? scanError.message
+          : t('guard.common.tryAgain'),
       );
     } finally {
       setWorking(false);
@@ -165,8 +169,9 @@ export default function GuardPatrolScreen() {
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'report') navigation.navigate('GuardReport');
     else if (tab === 'profile') navigation.navigate('GuardProfile');
-    else if (tab !== 'patrol')
-      Alert.alert(tab, 'This guard feature will be available soon.');
+    else if (tab !== 'patrol') {
+      Alert.alert(t('guard.tabs.schedule'), t('guard.common.featureSoon'));
+    }
   };
 
   return (
@@ -183,7 +188,7 @@ export default function GuardPatrolScreen() {
       {loading ? (
         <View style={s.state}>
           <ActivityIndicator color={colors.primary} />
-          <Text style={s.muted}>Loading patrol…</Text>
+          <Text style={s.muted}>{t('guard.patrol.loading')}</Text>
         </View>
       ) : error ? (
         <View style={s.state}>
@@ -195,7 +200,7 @@ export default function GuardPatrolScreen() {
               load();
             }}
           >
-            <Text style={s.retryText}>Try again</Text>
+            <Text style={s.retryText}>{t('guardProfile.tryAgain')}</Text>
           </ScalePressable>
         </View>
       ) : (
@@ -220,9 +225,11 @@ export default function GuardPatrolScreen() {
                 color={colors.status.success}
               />
               <View>
-                <Text style={s.successTitle}>Patrol completed</Text>
+                <Text style={s.successTitle}>
+                  {t('guard.patrol.roundCompletedTitle')}
+                </Text>
                 <Text style={s.muted}>
-                  All checkpoints were recorded successfully.
+                  {t('guard.patrol.roundCompletedBody')}
                 </Text>
               </View>
             </View>
@@ -231,7 +238,9 @@ export default function GuardPatrolScreen() {
             style={s.scanButton}
             onPress={startOrScan}
             disabled={working || !checkpoints.length}
-            accessibilityLabel={round ? 'Scan next checkpoint' : 'Start patrol'}
+            accessibilityLabel={
+              round ? t('guard.patrol.scanNext') : t('guard.patrol.startAction')
+            }
           >
             <Feather
               name="maximize"
@@ -241,17 +250,17 @@ export default function GuardPatrolScreen() {
             <View style={s.scanCopy}>
               <Text style={s.scanTitle}>
                 {working
-                  ? 'Updating patrol…'
+                  ? t('guard.patrol.updating')
                   : round
-                  ? 'Scan Checkpoint'
-                  : 'Start Patrol'}
+                  ? t('guard.patrol.scanCheckpoint')
+                  : t('guard.patrol.startPatrol')}
               </Text>
               <Text style={s.scanHint}>
                 {round
-                  ? 'Record the next patrol checkpoint'
+                  ? t('guard.patrol.recordNext')
                   : checkpoints.length
-                  ? 'Begin your assigned checkpoint route'
-                  : 'No checkpoints assigned'}
+                  ? t('guard.patrol.beginRoute')
+                  : t('guard.patrol.noCheckpoints')}
               </Text>
             </View>
             <Feather
@@ -260,10 +269,13 @@ export default function GuardPatrolScreen() {
               color={colors.primary}
             />
           </ScalePressable>
-          <Section title="PATROL PROGRESS">
+          <Section title={t('guard.patrol.progress')}>
             <View style={s.progressRow}>
               <Text style={s.progressText}>
-                {progress.scanned}/{progress.total} completed
+                {t('guard.patrol.completedCount', {
+                  scanned: progress.scanned,
+                  total: progress.total,
+                })}
               </Text>
               <Text
                 style={[
@@ -285,7 +297,7 @@ export default function GuardPatrolScreen() {
             </View>
           </Section>
           {nextCheckpoint ? (
-            <Section title="NEXT CHECKPOINT">
+            <Section title={t('guard.patrol.nextCheckpoint')}>
               <View style={s.locationRow}>
                 <View style={s.locationIcon}>
                   <Feather
@@ -296,12 +308,14 @@ export default function GuardPatrolScreen() {
                 </View>
                 <View style={s.flex}>
                   <Text style={s.checkpointName}>{nextCheckpoint.name}</Text>
-                  <Text style={s.muted}>Next checkpoint in your route</Text>
+                  <Text style={s.muted}>
+                    {t('guard.patrol.nextCheckpointHint')}
+                  </Text>
                 </View>
               </View>
             </Section>
           ) : null}
-          <Section title="RECENT SCANS">
+          <Section title={t('guard.patrol.recentScans')}>
             {recentScans.length ? (
               recentScans.map(point => (
                 <View key={point.id} style={s.scanRow}>
@@ -315,11 +329,21 @@ export default function GuardPatrolScreen() {
                 </View>
               ))
             ) : (
-              <Text style={s.muted}>No checkpoints scanned yet today.</Text>
+              <Text style={s.muted}>{t('guard.patrol.noScansYet')}</Text>
             )}
           </Section>
-          <Section title={`CHECKPOINT LIST${siteName ? ` — ${siteName}` : ''}`}>
-            <Text style={s.muted}>{checkpoints.length} checkpoints</Text>
+          <Section
+            title={
+              siteName
+                ? t('guard.patrol.checkpointListWithSite', { site: siteName })
+                : t('guard.patrol.checkpointList')
+            }
+          >
+            <Text style={s.muted}>
+              {t('guard.patrol.checkpointCount', {
+                count: checkpoints.length,
+              })}
+            </Text>
             {checkpoints.map((point, index) => (
               <View key={point.id} style={s.checkpointRow}>
                 <View style={s.sequence}>
@@ -341,7 +365,7 @@ export default function GuardPatrolScreen() {
         <ScalePressable
           style={s.backdrop}
           onPress={() => setProfileMenuOpen(false)}
-          accessibilityLabel="Close profile menu"
+          accessibilityLabel={t('guard.common.closeProfileMenu')}
         >
           <View />
         </ScalePressable>
@@ -349,8 +373,10 @@ export default function GuardPatrolScreen() {
       {profileMenuOpen ? (
         <AgencyProfileMenu
           identity={{
-            name: guard?.full_name || 'Guard',
-            company: guard?.guard_code ? `Badge ID ${guard.guard_code}` : '',
+            name: guard?.full_name || t('guard.common.guardFallback'),
+            company: guard?.guard_code
+              ? t('guard.common.badgeId', { id: guard.guard_code })
+              : '',
             initials: (guard?.full_name || 'G').trim().charAt(0).toUpperCase(),
           }}
           onMyProfile={() => {
