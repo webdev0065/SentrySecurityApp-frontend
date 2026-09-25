@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  Alert,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -33,6 +34,8 @@ import {
 import ScalePressable from '../../../components/common/ScalePressable';
 import EditSiteModal from '../components/EditSiteModal';
 import AgencyCoverageRequests from '../components/AgencyCoverageRequests';
+import PlanLimitNotice from '../components/PlanLimitNotice';
+import { usePlanUsage } from '../hooks/usePlanUsage';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencySites'>;
 const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
@@ -40,15 +43,19 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [siteItems, setSiteItems] = useState<AgencySite[]>([]);
-  const [addSiteOpen, setAddSiteOpen] = useState(
-    route.params?.openAddSite ?? false,
-  );
+  const [addSiteOpen, setAddSiteOpen] = useState(false);
   const [selectedSite, setSelectedSite] = useState<AgencySite | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [section, setSection] = useState<'sites' | 'requests'>(
     route.params?.openRequestId ? 'requests' : 'sites',
   );
+  const {
+    planName,
+    siteLimit,
+    sitesAtLimit,
+    refresh: refreshPlanUsage,
+  } = usePlanUsage();
   const loadSites = useCallback(async () => {
     try {
       setLoadError('');
@@ -66,12 +73,41 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
   useEffect(() => {
     loadSites();
   }, [loadSites]);
+
+  // Blocks the form before it opens once the plan's site allowance is used up
+  // and points the agency admin at the Plan screen to upgrade.
+  const requestAddSite = useCallback(() => {
+    if (sitesAtLimit) {
+      Alert.alert(
+        t('dashboard.planLimitTitle'),
+        t('dashboard.siteLimitMessage', {
+          plan: planName || t('dashboard.plan'),
+          limit: siteLimit,
+        }),
+        [
+          { text: t('dashboard.notNow'), style: 'cancel' },
+          {
+            text: t('dashboard.upgradePlan'),
+            onPress: () => navigation.navigate('AgencyPlan'),
+          },
+        ],
+      );
+      return;
+    }
+    setAddSiteOpen(true);
+  }, [sitesAtLimit, siteLimit, planName, navigation, t]);
+
+  const handleSitesChanged = useCallback(() => {
+    loadSites();
+    refreshPlanUsage();
+  }, [loadSites, refreshPlanUsage]);
+
   useEffect(() => {
     if (route.params?.openAddSite) {
-      setAddSiteOpen(true);
       navigation.setParams({ openAddSite: undefined });
+      requestAddSite();
     }
-  }, [navigation, route.params?.openAddSite]);
+  }, [navigation, route.params?.openAddSite, requestAddSite]);
   useEffect(() => {
     if (route.params?.openRequestId) setSection('requests');
   }, [route.params?.openRequestId]);
@@ -151,11 +187,22 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
           <>
             <ScalePressable
               style={s.addButton}
-              onPress={() => setAddSiteOpen(true)}
+              onPress={requestAddSite}
               accessibilityRole="button"
             >
               <Text style={s.addText}>{t('dashboard.addSite')}</Text>
             </ScalePressable>
+            {sitesAtLimit ? (
+              <PlanLimitNotice
+                title={t('dashboard.planLimitTitle')}
+                message={t('dashboard.siteLimitMessage', {
+                  plan: planName || t('dashboard.plan'),
+                  limit: siteLimit,
+                })}
+                actionLabel={t('dashboard.upgradePlan')}
+                onUpgrade={() => navigation.navigate('AgencyPlan')}
+              />
+            ) : null}
             <View style={s.searchRow}>
               <View style={s.search}>
                 <Feather name="search" size={f(23)} color="#A3A3A3" />
@@ -196,7 +243,7 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
           <AgencyCoverageRequests
             requestedId={route.params?.openRequestId}
             onRequestedIdHandled={clearRequestedId}
-            onRequestUpdated={loadSites}
+            onRequestUpdated={handleSitesChanged}
           />
         )}
       </ScrollView>
@@ -220,7 +267,7 @@ const AgencySitesScreen: React.FC<Props> = ({ navigation, route }) => {
       <AddSiteModal
         visible={addSiteOpen}
         onClose={() => setAddSiteOpen(false)}
-        onCreated={loadSites}
+        onCreated={handleSitesChanged}
       />
       <EditSiteModal
         visible={selectedSite !== null}

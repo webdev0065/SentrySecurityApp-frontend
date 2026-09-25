@@ -40,14 +40,17 @@ const formatINR = (value: number): string =>
   `₹${Math.round(value).toLocaleString('en-IN')}`;
 const formatPriceLine = (
   price: AgencyPlan['price'],
+  freeLabel: string,
   interval?: string | null,
 ): string => {
+  const value = parsePrice(price);
+  if (value <= 0) return freeLabel;
   const suffix = String(interval ?? 'month')
     .toLowerCase()
     .includes('year')
     ? '/yr'
     : '/mo';
-  return `${formatINR(parsePrice(price))}${suffix}`;
+  return `${formatINR(value)}${suffix}`;
 };
 const parseFeatures = (features: AgencyPlan['features']): string[] => {
   if (!features) return [];
@@ -67,8 +70,8 @@ const formatDate = (value?: string | null): string => {
     year: 'numeric',
   });
 };
-const isAtLimit = (used: number, limit: number | null): boolean =>
-  limit !== null && limit !== undefined && used >= limit;
+const isUnlimitedLimit = (limit: number | null | undefined): boolean =>
+  limit === null || limit === undefined;
 const UsageBar: React.FC<{
   label: string;
   used: number;
@@ -76,9 +79,14 @@ const UsageBar: React.FC<{
   tone: string;
 }> = ({ label, used, limit, tone }) => {
   const { t } = useTranslation();
-  const percent =
-    limit && limit > 0 ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0;
-  const reached = isAtLimit(used, limit);
+  const unlimited = limit === null || limit === undefined;
+  const finiteLimit = typeof limit === 'number' ? limit : 0;
+  const percent = unlimited
+    ? 100
+    : finiteLimit > 0
+    ? Math.min(100, Math.max(0, (used / finiteLimit) * 100))
+    : 0;
+  const reached = !unlimited && used >= finiteLimit;
   return (
     <View style={planStyles.usageBlock}>
       <View style={planStyles.usageRow}>
@@ -89,14 +97,18 @@ const UsageBar: React.FC<{
             reached && planStyles.usageValueReached,
           ]}
         >
-          {used} / {limit ?? '-'}
+          {used} / {unlimited ? t('plan.unlimited') : limit}
         </Text>
       </View>
       <View style={planStyles.track}>
         <View
           style={[
             planStyles.fill,
-            tone === 'guard' ? planStyles.guardFill : planStyles.siteFill,
+            unlimited
+              ? planStyles.unlimitedFill
+              : tone === 'guard'
+              ? planStyles.guardFill
+              : planStyles.siteFill,
             { width: `${percent}%` },
           ]}
         />
@@ -108,7 +120,9 @@ const UsageBar: React.FC<{
             size={f(13)}
             color={colors.status.danger}
           />
-          <Text style={planStyles.limitText}>{t('plan.limitReached')}</Text>
+          <Text style={planStyles.limitText}>
+            {t('plan.limitReached')} · {t('plan.upgradeHint')}
+          </Text>
         </View>
       ) : null}
     </View>
@@ -178,6 +192,7 @@ const AgencyPlanScreen: React.FC<Props> = ({ navigation }) => {
   const siteLimit =
     subscription?.usage?.sites?.limit ?? subscription?.max_sites ?? null;
   const statusLabel = (subscription?.status ?? '').toUpperCase();
+  const freePlan = parsePrice(subscription?.price ?? 0) <= 0;
   const renewal = formatDate(
     subscription?.renews_at ?? subscription?.renewsAt ?? null,
   );
@@ -264,11 +279,17 @@ const AgencyPlanScreen: React.FC<Props> = ({ navigation }) => {
           <Feather name="award" size={f(22)} color={colors.primary} />
           <Text style={planStyles.planName}>{subscription.plan_name}</Text>
           <Text style={planStyles.planPrice}>
-            {formatPriceLine(subscription.price, subscription.billing_interval)}
+            {formatPriceLine(
+              subscription.price,
+              t('plan.free'),
+              subscription.billing_interval ?? subscription.interval,
+            )}
           </Text>
         </View>
         <Text style={planStyles.renewal}>
-          {renewal
+          {freePlan
+            ? t('plan.freePlanHint')
+            : renewal
             ? t('plan.renewsOn', { date: renewal })
             : t('plan.monthlyBilling')}
         </Text>
@@ -362,13 +383,21 @@ const AgencyPlanScreen: React.FC<Props> = ({ navigation }) => {
                     <View style={planStyles.planCardTop}>
                       <Text style={planStyles.planCardName}>{plan.name}</Text>
                       <Text style={planStyles.planCardPrice}>
-                        {formatPriceLine(plan.price, plan.billing_interval)}
+                        {formatPriceLine(
+                          plan.price,
+                          t('plan.free'),
+                          plan.billing_interval ?? plan.interval,
+                        )}
                       </Text>
                     </View>
                     <Text style={planStyles.planLimits}>
                       {t('plan.planLimits', {
-                        guards: plan.max_guards ?? '-',
-                        sites: plan.max_sites ?? '-',
+                        guards: isUnlimitedLimit(plan.max_guards)
+                          ? t('plan.unlimited')
+                          : plan.max_guards,
+                        sites: isUnlimitedLimit(plan.max_sites)
+                          ? t('plan.unlimited')
+                          : plan.max_sites,
                       })}
                     </Text>
                     {features.map(feature => (
@@ -515,6 +544,7 @@ const planStyles = StyleSheet.create({
   fill: { height: '100%', borderRadius: w(6) },
   guardFill: { backgroundColor: colors.primary },
   siteFill: { backgroundColor: colors.status.success },
+  unlimitedFill: { backgroundColor: colors.status.success },
   limitRow: {
     flexDirection: 'row',
     alignItems: 'center',

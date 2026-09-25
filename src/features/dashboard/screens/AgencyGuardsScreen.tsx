@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Linking,
   ScrollView,
   StatusBar,
@@ -32,19 +33,51 @@ import AgencyProfileMenu from '../components/AgencyProfileMenu';
 import AgencyTopNavigation from '../components/AgencyTopNavigation';
 import ScalePressable from '../../../components/common/ScalePressable';
 import AddGuardModal from '../components/AddGuardModal';
+import PlanLimitNotice from '../components/PlanLimitNotice';
+import { usePlanUsage } from '../hooks/usePlanUsage';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencyGuards'>;
 type Filter = 'all' | 'on_duty' | 'off_duty';
 
 const AgencyGuardsScreen: React.FC<Props> = ({ navigation, route }) => {
   const [addingGuard, setAddingGuard] = useState(false);
+  const { t } = useTranslation();
+  const {
+    planName,
+    guardLimit,
+    guardsAtLimit,
+    refresh: refreshPlanUsage,
+  } = usePlanUsage();
+
+  // Blocks the form before it opens once the plan's guard allowance is used up
+  // and points the agency admin at the Plan screen to upgrade.
+  const requestAddGuard = useCallback(() => {
+    if (guardsAtLimit) {
+      Alert.alert(
+        t('dashboard.planLimitTitle'),
+        t('dashboard.guardLimitMessage', {
+          plan: planName || t('dashboard.plan'),
+          limit: guardLimit,
+        }),
+        [
+          { text: t('dashboard.notNow'), style: 'cancel' },
+          {
+            text: t('dashboard.upgradePlan'),
+            onPress: () => navigation.navigate('AgencyPlan'),
+          },
+        ],
+      );
+      return;
+    }
+    setAddingGuard(true);
+  }, [guardsAtLimit, guardLimit, planName, navigation, t]);
+
   useEffect(() => {
     if (route.params?.openAddGuard) {
-      setAddingGuard(true);
       navigation.setParams({ openAddGuard: false });
+      requestAddGuard();
     }
-  }, [route.params?.openAddGuard, navigation]);
-  const { t } = useTranslation();
+  }, [route.params?.openAddGuard, navigation, requestAddGuard]);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [guards, setGuards] = useState<AgencyGuard[]>([]);
   const [query, setQuery] = useState('');
@@ -118,11 +151,22 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation, route }) => {
       >
         <ScalePressable
           style={s.addButton}
-          onPress={() => setAddingGuard(true)}
+          onPress={requestAddGuard}
           accessibilityRole="button"
         >
           <Text style={s.addText}>{t('dashboard.addGuard')}</Text>
         </ScalePressable>
+        {guardsAtLimit ? (
+          <PlanLimitNotice
+            title={t('dashboard.planLimitTitle')}
+            message={t('dashboard.guardLimitMessage', {
+              plan: planName || t('dashboard.plan'),
+              limit: guardLimit,
+            })}
+            actionLabel={t('dashboard.upgradePlan')}
+            onUpgrade={() => navigation.navigate('AgencyPlan')}
+          />
+        ) : null}
         <View style={s.searchRow}>
           <View style={s.search}>
             <Feather name="search" size={f(22)} color="#A3A3A3" />
@@ -190,6 +234,7 @@ const AgencyGuardsScreen: React.FC<Props> = ({ navigation, route }) => {
           setQuery('');
           setFilter('all');
           loadGuards();
+          refreshPlanUsage();
         }}
       />
       <AddGuardModal

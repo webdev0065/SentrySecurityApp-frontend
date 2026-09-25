@@ -15,6 +15,7 @@ import {
   agencyApiService,
   type AgencySite,
 } from '../../../services/agencyApiService';
+import { ApiError } from '../../../services/apiClient';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 
@@ -52,8 +53,9 @@ const AddSiteModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       onCreated(response.data);
       onClose();
     } catch (error) {
+      const limitReached = error instanceof ApiError && error.status === 403;
       Alert.alert(
-        t('dashboard.saveSite'),
+        limitReached ? t('dashboard.planLimitTitle') : t('dashboard.saveSite'),
         error instanceof Error ? error.message : t('dashboard.tryAgain'),
       );
     } finally {

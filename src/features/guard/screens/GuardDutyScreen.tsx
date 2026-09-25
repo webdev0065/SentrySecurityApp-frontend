@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -13,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from 'react-native-vector-icons/Feather';
 
 import ScalePressable from '../../../components/common/ScalePressable';
+import { resolveMediaUrl } from '../../../config/api';
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
@@ -24,11 +26,14 @@ import GuardBottomNavigation, {
 import {
   guardService,
   type GuardDutyDetails,
+  type GuardDutyLog,
+  type GuardDutyStatus,
 } from '../../../services/guardService';
 import AgencyProfileMenu from '../../dashboard/components/AgencyProfileMenu';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { GuardStackParamList } from '../../../navigation/types';
+import { useDutyTimer } from '../hooks/useDutyTimer';
 import { useTranslation } from 'react-i18next';
 
 const formatTime = (time?: string | null, notSetLabel?: string) => {
@@ -39,11 +44,19 @@ const formatTime = (time?: string | null, notSetLabel?: string) => {
   return `${String(number % 12 || 12).padStart(2, '0')}:${minute} ${suffix}`;
 };
 
+const formatClock = (value?: string | null) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
 const GuardDutyScreen = () => {
   const { t } = useTranslation();
   const [guard, setGuard] = useState<GuardDutyDetails | null>(null);
+  const [duty, setDuty] = useState<GuardDutyStatus | null>(null);
+  const [dutyLogs, setDutyLogs] = useState<GuardDutyLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<GuardTab>('duty');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -53,7 +66,15 @@ const GuardDutyScreen = () => {
   const load = useCallback(async () => {
     try {
       setError('');
-      setGuard(await guardService.getDutyDetails());
+      const [details, status, logs] = await Promise.all([
+        guardService.getDutyDetails(),
+        guardService.getDutyStatus(),
+        // The photo log is supporting information — never block the dashboard.
+        guardService.getDutyHistory().catch(() => [] as GuardDutyLog[]),
+      ]);
+      setGuard(details);
+      setDuty(status);
+      setDutyLogs(logs);
     } catch (loadError) {
       setError(
         loadError instanceof Error
@@ -64,11 +85,18 @@ const GuardDutyScreen = () => {
       setLoading(false);
     }
   }, [t]);
-  useEffect(() => {
-    load();
-  }, [load]);
 
-  const isOnDuty = guard?.status === 'on_duty';
+  // Runs on mount and again after the selfie capture screen closes, so the
+  // timer and photo log reflect the new duty log immediately.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const isOnDuty = duty?.status === 'on_duty';
+  const activeLog = duty?.active_log ?? null;
+  const timer = useDutyTimer(activeLog?.clock_in_at);
   const notSetLabel = t('guard.duty.scheduleNotSet');
   const assignmentText = useMemo(() => {
     if (!guard?.site_name) return t('guard.duty.noActiveSite');
@@ -77,25 +105,24 @@ const GuardDutyScreen = () => {
       notSetLabel,
     )}`;
   }, [guard, notSetLabel, t]);
+  const todayLogs = useMemo(() => {
+    const today = new Date().toDateString();
+    return dutyLogs.filter(
+      log => new Date(log.clock_in_at).toDateString() === today,
+    );
+  }, [dutyLogs]);
 
-  const toggleDuty = async () => {
-    if (!guard || saving) return;
-    try {
-      setSaving(true);
-      setGuard(
-        await guardService.updateDutyStatus(isOnDuty ? 'off_duty' : 'on_duty'),
-      );
-    } catch (updateError) {
+  const startDuty = () => {
+    if (!guard?.site_id) {
       Alert.alert(
-        t('guard.duty.updateFailed'),
-        updateError instanceof Error
-          ? updateError.message
-          : t('guard.common.tryAgain'),
+        t('guard.duty.noActiveSite'),
+        t('guard.duty.noActiveSiteHint'),
       );
-    } finally {
-      setSaving(false);
+      return;
     }
+    navigation.navigate('GuardDutyCapture', { mode: 'clock_in' });
   };
+  const endDuty = () => navigation.navigate('GuardDutyCapture', { mode: 'clock_out' });
   const showUnavailable = (label: string) =>
     Alert.alert(label, t('guard.common.featureSoon'));
   const handleTab = (tab: GuardTab) => {
@@ -165,8 +192,8 @@ const GuardDutyScreen = () => {
         >
           <ScalePressable
             style={[styles.dutyCard, isOnDuty && styles.dutyCardActive]}
-            onPress={toggleDuty}
-            disabled={saving}
+            onPress={isOnDuty ? endDuty : startDuty}
+            disabled={loading}
             accessibilityRole="button"
             accessibilityLabel={
               isOnDuty ? t('guard.duty.clockOut') : t('guard.duty.clockIn')
@@ -184,17 +211,28 @@ const GuardDutyScreen = () => {
                 {isOnDuty ? t('guard.duty.onDuty') : t('guard.duty.offDuty')}
               </Text>
             </View>
+            {isOnDuty ? (
+              <>
+                <Text style={styles.timerLabel}>
+                  {t('guard.duty.timerLabel')}
+                </Text>
+                <Text style={styles.dutyTimer}>{timer.label}</Text>
+                <Text style={styles.dutyHint}>
+                  {t('guard.duty.startedAt', {
+                    time: formatClock(activeLog?.clock_in_at),
+                  })}
+                </Text>
+              </>
+            ) : null}
             <Text style={styles.dutyAction}>
-              {saving
-                ? t('guard.duty.updating')
-                : isOnDuty
+              {isOnDuty
                 ? t('guard.duty.tapToClockOut')
                 : t('guard.duty.tapToClockIn')}
             </Text>
             <Text style={styles.dutyHint}>
               {isOnDuty
-                ? t('guard.duty.statusActive')
-                : t('guard.duty.statusAvailable')}
+                ? t('guard.duty.clockOutPhotoNotice')
+                : t('guard.duty.clockInPhotoRequired')}
             </Text>
           </ScalePressable>
 
@@ -270,16 +308,33 @@ const GuardDutyScreen = () => {
               </View>
             </ScalePressable>
           </Card>
-          <Card
-            title={t('guard.duty.photoLogTitle')}
-            action={() => showUnavailable(t('guard.duty.photoLog'))}
-          >
-            <View style={styles.assignmentRow}>
-              <IconBox icon="image" />
-              <Text style={[styles.muted, styles.flex]}>
-                {t('guard.duty.photoEmpty')}
-              </Text>
-            </View>
+          <Card title={t('guard.duty.photoLogTitle')}>
+            {todayLogs.length ? (
+              todayLogs.map(log => (
+                <View key={log.id} style={styles.logGroup}>
+                  <Text style={styles.logSite}>
+                    {log.site_name || t('guard.duty.noSiteAssigned')}
+                  </Text>
+                  <DutyPhotoRow
+                    label={t('guard.duty.clockInPhoto')}
+                    time={formatClock(log.clock_in_at)}
+                    photo={log.clock_in_photo}
+                  />
+                  <DutyPhotoRow
+                    label={t('guard.duty.clockOutPhoto')}
+                    time={formatClock(log.clock_out_at)}
+                    photo={log.clock_out_photo}
+                  />
+                </View>
+              ))
+            ) : (
+              <View style={styles.assignmentRow}>
+                <IconBox icon="image" />
+                <Text style={[styles.muted, styles.flex]}>
+                  {t('guard.duty.photoEmpty')}
+                </Text>
+              </View>
+            )}
           </Card>
         </ScrollView>
       ) : null}
@@ -364,6 +419,44 @@ const Card = ({
   </View>
 );
 
+const DutyPhotoRow = ({
+  label,
+  time,
+  photo,
+}: {
+  label: string;
+  time: string;
+  photo?: string | null;
+}) => {
+  const { t } = useTranslation();
+  const uri = resolveMediaUrl(photo);
+
+  return (
+    <View style={styles.logRow}>
+      {uri ? (
+        <Image source={{ uri }} style={styles.logThumb} resizeMode="cover" />
+      ) : (
+        <View style={[styles.logThumb, styles.logThumbEmpty]}>
+          <Feather name="image" size={scaleFont(18)} color={colors.textGray} />
+        </View>
+      )}
+      <View style={styles.flex}>
+        <Text style={styles.logLabel}>{label}</Text>
+        <Text style={styles.muted}>
+          {uri ? time : t('guard.duty.photoPending')}
+        </Text>
+      </View>
+      {uri ? (
+        <Feather
+          name="check-circle"
+          size={scaleFont(18)}
+          color={colors.status.success}
+        />
+      ) : null}
+    </View>
+  );
+};
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.light.background },
   scroll: { flex: 1 },
@@ -447,6 +540,52 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.textGray,
     fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.sm),
+  },
+  timerLabel: {
+    marginTop: spacing.md,
+    color: colors.textGray,
+    fontFamily: typography.fontFamily,
+    fontWeight: typography.weights.semiBold,
+    fontSize: scaleFont(typography.sizes.xs),
+    letterSpacing: scaleFont(1.4),
+  },
+  dutyTimer: {
+    marginTop: spacing.xs,
+    color: colors.primary,
+    fontFamily: typography.fontFamily,
+    fontWeight: typography.weights.bold,
+    fontSize: scaleFont(typography.sizes.xxxl),
+    letterSpacing: scaleFont(1.2),
+  },
+  logGroup: { gap: spacing.sm, marginBottom: spacing.sm },
+  logSite: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily,
+    fontWeight: typography.weights.semiBold,
+    fontSize: scaleFont(typography.sizes.sm),
+  },
+  logRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  logThumb: {
+    height: scaleWidth(46),
+    width: scaleWidth(46),
+    borderRadius: scaleWidth(10),
+    backgroundColor: colors.light.background,
+  },
+  logThumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  logLabel: {
+    color: colors.primary,
+    fontFamily: typography.fontFamily,
+    fontWeight: typography.weights.medium,
     fontSize: scaleFont(typography.sizes.sm),
   },
   card: {

@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import GuardDutyScreen from '../features/guard/screens/GuardDutyScreen';
+import GuardDutyCaptureScreen from '../features/guard/screens/GuardDutyCaptureScreen';
 import GuardReportScreen from '../features/guard/screens/GuardReportScreen';
 import GuardPatrolScreen from '../features/guard/screens/GuardPatrolScreen';
 import GuardProfileScreen from '../features/guard/screens/GuardProfileScreen';
@@ -18,6 +19,11 @@ const Stack = createNativeStackNavigator<GuardStackParamList>();
 const GuardNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="GuardDuty" component={GuardDutyScreen} />
+    <Stack.Screen
+      name="GuardDutyCapture"
+      component={GuardDutyCaptureScreen}
+      options={{ animation: 'slide_from_bottom' }}
+    />
     <Stack.Screen name="GuardReport" component={GuardReportScreen} />
     <Stack.Screen name="GuardPatrol" component={GuardPatrolScreen} />
     <Stack.Screen name="GuardProfile" component={GuardProfileScreen} />

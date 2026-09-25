@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +14,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 
 import ScalePressable from '../../../components/common/ScalePressable';
+import { ApiError } from '../../../services/apiClient';
 import { colors } from '../../../styles/colors';
 import { spacing } from '../../../styles/spacing';
 import { typography } from '../../../styles/typography';
@@ -23,227 +24,388 @@ import {
   scaleWidth as w,
 } from '../../../styles/dimensions';
 import type { GuardStackParamList } from '../../../navigation/types';
-import { guardService, type GuardProfile } from '../../../services/guardService';
+import {
+  guardService,
+  type GuardProfile,
+  type GuardSalarySummary,
+} from '../../../services/guardService';
 
 type Props = NativeStackScreenProps<GuardStackParamList, 'GuardSalary'>;
-
-/** Burnt-orange accent shared across the guard feature. */
-const ACCENT = '#B9640A';
-
-// Frontend sample values until the backend exposes payroll endpoints.
-const SAMPLE_OVERTIME = 1000;
-const SAMPLE_DEDUCTIONS = 1400;
-const SAMPLE_HISTORY: Array<{ monthOffset: number; amount: number }> = [
-  { monthOffset: -1, amount: 26300 },
-  { monthOffset: -2, amount: 26500 },
-];
-
-const formatINR = (value: number): string =>
-  `₹${Math.round(value).toLocaleString('en-IN')}`;
+type MonthOffset = number;
 
 const toNumber = (value: number | string | null | undefined): number => {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const monthLabel = (date: Date, locale: string): string =>
-  date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+const formatINR = (value: number | string | null | undefined): string => {
+  const amount = toNumber(value);
+  return `₹${amount.toLocaleString('en-IN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const isoDate = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    '0',
+  )}-${String(date.getDate()).padStart(2, '0')}`;
+
+/** The API includes the current day for the running month. */
+const monthPeriod = (offset: MonthOffset): { from: string; to: string } => {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+  const end =
+    offset === 0
+      ? now
+      : new Date(now.getFullYear(), now.getMonth() + offset + 1, 0);
+  return { from: isoDate(start), to: isoDate(end) };
+};
+
+const monthLabel = (offset: MonthOffset, locale: string): string =>
+  new Date(
+    new Date().getFullYear(),
+    new Date().getMonth() + offset,
+    1,
+  ).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+
+const periodLabel = (period: { from: string; to: string }, locale: string) => {
+  const from = new Date(`${period.from}T00:00:00`);
+  const to = new Date(`${period.to}T00:00:00`);
+  return `${from.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+  })} – ${to.toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })}`;
+};
 
 const GuardSalaryScreen: React.FC<Props> = ({ navigation }) => {
   const { t, i18n } = useTranslation();
+  const [monthOffset, setMonthOffset] = useState<MonthOffset>(0);
   const [profile, setProfile] = useState<GuardProfile | null>(null);
+  const [summary, setSummary] = useState<GuardSalarySummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      setError('');
-      setProfile(await guardService.getProfile());
-    } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : t('guard.salary.loadFailed'),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  const load = useCallback(
+    async (offset: MonthOffset, isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      try {
+        setError('');
+        const period = monthPeriod(offset);
+        const [nextProfile, nextSummary] = await Promise.all([
+          guardService.getProfile(),
+          guardService.getDutySalary(period.from, period.to),
+        ]);
+        setProfile(nextProfile);
+        setSummary(nextSummary);
+      } catch (loadError) {
+        setError(
+          loadError instanceof ApiError && loadError.status === 400
+            ? t('guard.salary.notConfigured')
+            : loadError instanceof Error
+            ? loadError.message
+            : t('guard.salary.loadFailed'),
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(monthOffset);
+  }, [load, monthOffset]);
 
-  const basic = toNumber(profile?.basic_salary);
-  const allowances = toNumber(profile?.allowances);
-  const overtime = SAMPLE_OVERTIME;
-  const deductions = SAMPLE_DEDUCTIONS;
-  const net = basic + overtime + allowances - deductions;
+  const changeMonth = (offset: MonthOffset) => {
+    if (offset > 0 || loading) return;
+    setMonthOffset(offset);
+  };
 
-  const now = new Date();
-  const currentMonth = monthLabel(now, i18n.language);
-  const history = SAMPLE_HISTORY.map(entry => ({
-    label: monthLabel(
-      new Date(now.getFullYear(), now.getMonth() + entry.monthOffset, 1),
-      i18n.language,
-    ),
-    amount: entry.amount,
-  }));
+  const totalHours = toNumber(summary?.total_hours);
+  const shiftCount = toNumber(summary?.total_shifts);
+  const hasHours = shiftCount > 0 && totalHours > 0;
+  const period = summary
+    ? { from: summary.from, to: summary.to }
+    : monthPeriod(monthOffset);
 
-  const downloadPayslip = () =>
-    Alert.alert(
-      t('guard.salary.downloadPayslip'),
-      t('guard.salary.payslipSoon'),
-    );
   return (
-    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" />
-      <View style={s.header}>
+      <View style={styles.header}>
         <ScalePressable
-          style={s.iconButton}
+          style={styles.iconButton}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel={t('guardProfile.back')}
         >
           <Feather name="arrow-left" size={f(22)} color={colors.primary} />
         </ScalePressable>
-        <Text style={s.headerTitle} numberOfLines={1}>
+        <Text style={styles.headerTitle} numberOfLines={1}>
           {t('guard.salary.headerTitle')}
         </Text>
-        <View style={s.iconButton} />
+        <View style={styles.iconButton} />
       </View>
 
       {loading ? (
-        <View style={s.state}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={s.muted}>{t('guard.salary.loading')}</Text>
+        <View style={styles.state}>
+          <ActivityIndicator color={colors.primary} size="large" />
+          <Text style={styles.stateText}>{t('guard.salary.loading')}</Text>
         </View>
       ) : null}
+
       {!loading && error ? (
-        <View style={s.state}>
-          <Text style={s.error}>{error}</Text>
+        <View style={styles.state}>
+          <View style={styles.errorIcon}>
+            <Feather
+              name="alert-circle"
+              size={f(28)}
+              color={colors.status.danger}
+            />
+          </View>
+          <Text style={styles.error}>{error}</Text>
           <ScalePressable
-            style={s.retry}
-            onPress={() => {
-              setLoading(true);
-              load();
-            }}
+            style={styles.retryButton}
+            onPress={() => load(monthOffset)}
             accessibilityRole="button"
           >
-            <Text style={s.retryText}>{t('guard.salary.retry')}</Text>
+            <Text style={styles.retryText}>{t('guard.salary.retry')}</Text>
           </ScalePressable>
         </View>
       ) : null}
-      {!loading && !error ? (
-        <ScrollView
-          contentContainerStyle={s.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={s.hero}>
-            <View style={s.heroTop}>
-              <Text style={s.heroCaption}>
-                {`${currentMonth} · ${t('guard.salary.totalSalary')}`}
-              </Text>
-              <View style={s.heroBadge}>
-                <Text style={s.heroBadgeText}>{t('guard.salary.pending')}</Text>
-              </View>
-            </View>
-            <Text style={s.heroAmount}>{formatINR(net)}</Text>
-          </View>
 
-          <View style={s.card}>
-            <Row
-              label={t('guard.salary.basicSalary')}
-              value={formatINR(basic)}
+      {!loading && !error && summary ? (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => load(monthOffset, true)}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
-            <Row label={t('guard.salary.overtime')} value={formatINR(overtime)} />
-            <Row
-              label={t('guard.salary.allowances')}
-              value={formatINR(allowances)}
-            />
-            <Row
-              label={t('guard.salary.deductions')}
-              value={`-${formatINR(deductions)}`}
-              danger
-            />
-            <View style={s.divider} />
-            <View style={s.row}>
-              <Text style={s.netLabel}>{t('guard.salary.netSalary')}</Text>
-              <Text style={s.netValue}>{formatINR(net)}</Text>
+          }
+        >
+          <View style={styles.periodPicker}>
+            <ScalePressable
+              style={styles.periodButton}
+              onPress={() => changeMonth(monthOffset - 1)}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel={t('guard.salary.previousMonth')}
+            >
+              <Feather
+                name="chevron-left"
+                size={f(22)}
+                color={colors.primary}
+              />
+            </ScalePressable>
+            <View style={styles.periodTextWrap}>
+              <Text style={styles.periodLabel}>
+                {t('guard.salary.salaryPeriod')}
+              </Text>
+              <Text style={styles.periodValue}>
+                {monthLabel(monthOffset, i18n.language)}
+              </Text>
             </View>
             <ScalePressable
-              style={s.downloadButton}
-              onPress={downloadPayslip}
+              style={[
+                styles.periodButton,
+                monthOffset === 0 && styles.periodButtonDisabled,
+              ]}
+              onPress={() => changeMonth(monthOffset + 1)}
+              disabled={monthOffset === 0 || loading}
               accessibilityRole="button"
-              accessibilityLabel={t('guard.salary.downloadPayslip')}
+              accessibilityLabel={t('guard.salary.nextMonth')}
+              accessibilityState={{ disabled: monthOffset === 0 }}
             >
-              <Feather name="download" size={f(18)} color={colors.white} />
-              <Text style={s.downloadText}>
-                {t('guard.salary.downloadPayslip')}
-              </Text>
+              <Feather
+                name="chevron-right"
+                size={f(22)}
+                color={monthOffset === 0 ? colors.textGray : colors.primary}
+              />
             </ScalePressable>
           </View>
-          <View style={s.card}>
-            <View style={s.titleRow}>
-              <View style={s.sectionMark} />
-              <Text style={s.sectionTitle}>{t('guard.salary.history')}</Text>
-            </View>
-            {history.map((entry, index) => (
-              <View
-                key={entry.label}
-                style={[s.historyRow, index > 0 && s.historyDivider]}
-              >
-                <Text style={s.historyMonth}>{entry.label}</Text>
-                <Text style={s.historyAmount}>{formatINR(entry.amount)}</Text>
-                <View style={s.verifiedBadge}>
-                  <Text style={s.verifiedText}>
-                    {t('guard.salary.verified')}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
 
-          <View style={s.card}>
-            <View style={s.titleRow}>
-              <View style={s.sectionMark} />
-              <Text style={s.sectionTitle}>
-                {t('guard.salary.advanceHistory')}
+          <View style={styles.hero}>
+            <View style={styles.heroIcon}>
+              <Feather name="credit-card" size={f(24)} color={colors.white} />
+            </View>
+            <Text style={styles.heroLabel}>
+              {t('guard.salary.calculatedSalary')}
+            </Text>
+            <Text
+              style={styles.heroAmount}
+              adjustsFontSizeToFit
+              numberOfLines={1}
+            >
+              {formatINR(summary.calculated_pay)}
+            </Text>
+            <Text style={styles.heroPeriod}>
+              {periodLabel(period, i18n.language)}
+            </Text>
+            <View style={styles.calculatedBadge}>
+              <Feather
+                name="check-circle"
+                size={f(14)}
+                color={colors.status.success}
+              />
+              <Text style={styles.calculatedText}>
+                {t('guard.salary.hoursBased')}
               </Text>
             </View>
-            <Text style={s.muted}>{t('guard.salary.noAdvances')}</Text>
           </View>
+
+          <View style={styles.metricsRow}>
+            <MetricCard
+              icon="clock"
+              label={t('guard.salary.hoursWorked')}
+              value={totalHours.toLocaleString(i18n.language, {
+                maximumFractionDigits: 2,
+              })}
+            />
+            <MetricCard
+              icon="briefcase"
+              label={t('guard.salary.shiftsCompleted')}
+              value={String(shiftCount)}
+            />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              {t('guard.salary.earningsDetails')}
+            </Text>
+            <DetailRow
+              label={t('guard.salary.hourlyRate')}
+              value={`${formatINR(summary.hourly_rate)} / ${t(
+                'guard.salary.hour',
+              )}`}
+            />
+            <View style={styles.divider} />
+            <DetailRow
+              label={t('guard.salary.loggedTime')}
+              value={t('guard.salary.minutesFromShifts', {
+                minutes: Math.round(toNumber(summary.total_minutes)),
+              })}
+            />
+            <View style={styles.divider} />
+            <DetailRow
+              label={t('guard.salary.calculatedPay')}
+              value={formatINR(summary.calculated_pay)}
+              emphasized
+            />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              {t('guard.salary.compensation')}
+            </Text>
+            <DetailRow
+              label={t('guard.salary.basicSalary')}
+              value={formatINR(profile?.basic_salary)}
+            />
+            <View style={styles.divider} />
+            <DetailRow
+              label={t('guard.salary.allowances')}
+              value={formatINR(profile?.allowances)}
+            />
+            <View style={styles.infoBox}>
+              <Feather name="info" size={f(17)} color={colors.status.info} />
+              <Text style={styles.infoText}>
+                {t('guard.salary.calculationNote')}
+              </Text>
+            </View>
+          </View>
+
+          {!hasHours ? (
+            <View style={styles.emptyCard}>
+              <Feather name="calendar" size={f(28)} color={colors.primary} />
+              <Text style={styles.emptyTitle}>
+                {t('guard.salary.noHoursTitle')}
+              </Text>
+              <Text style={styles.emptyText}>
+                {t('guard.salary.noHoursBody')}
+              </Text>
+            </View>
+          ) : null}
         </ScrollView>
       ) : null}
     </SafeAreaView>
   );
 };
 
-const Row: React.FC<{
+type MetricCardProps = {
+  icon: React.ComponentProps<typeof Feather>['name'];
   label: string;
   value: string;
-  danger?: boolean;
-}> = ({ label, value, danger }) => (
-  <View style={s.row}>
-    <Text style={s.rowLabel}>{label}</Text>
-    <Text style={[s.rowValue, danger && s.rowValueDanger]}>{value}</Text>
+};
+
+const MetricCard = ({ icon, label, value }: MetricCardProps) => (
+  <View style={styles.metricCard}>
+    <View style={styles.metricIcon}>
+      <Feather name={icon} size={f(20)} color={colors.primary} />
+    </View>
+    <Text style={styles.metricValue}>{value}</Text>
+    <Text style={styles.metricLabel}>{label}</Text>
   </View>
 );
-const s = StyleSheet.create({
+
+type DetailRowProps = {
+  label: string;
+  value: string;
+  emphasized?: boolean;
+};
+
+const DetailRow = ({ label, value, emphasized = false }: DetailRowProps) => (
+  <View style={styles.detailRow}>
+    <Text style={[styles.detailLabel, emphasized && styles.detailLabelStrong]}>
+      {label}
+    </Text>
+    <Text
+      style={[styles.detailValue, emphasized && styles.detailValueStrong]}
+      numberOfLines={1}
+    >
+      {value}
+    </Text>
+  </View>
+);
+
+const textBase = {
+  fontFamily: typography.fontFamily,
+  fontSize: f(typography.sizes.md),
+  fontWeight: typography.weights.regular,
+};
+const body = { ...textBase, lineHeight: f(22) };
+const caption = {
+  ...textBase,
+  fontSize: f(typography.sizes.xs),
+  lineHeight: f(17),
+};
+
+const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.light.background },
   header: {
+    minHeight: h(58),
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: w(12),
-    paddingVertical: h(10),
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
     backgroundColor: colors.white,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
     borderBottomColor: colors.light.border,
   },
   iconButton: {
-    width: w(40),
-    height: w(40),
-    borderRadius: w(20),
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -252,202 +414,215 @@ const s = StyleSheet.create({
     textAlign: 'center',
     color: colors.primary,
     fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.lg),
+    fontSize: f(typography.sizes.xl),
     fontWeight: typography.weights.bold,
+  },
+  content: {
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
+    gap: spacing.md,
   },
   state: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
-    padding: spacing.lg,
+    padding: spacing.xl,
+    gap: spacing.md,
   },
-  muted: {
-    color: colors.textGray,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.sm),
-    textAlign: 'center',
+  stateText: { ...textBase, color: colors.light.secondaryText },
+  errorIcon: {
+    width: w(56),
+    height: w(56),
+    borderRadius: w(28),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.light.background,
   },
-  error: {
-    color: colors.status.danger,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.sm),
-    textAlign: 'center',
-  },
-  retry: {
-    minHeight: h(44),
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: spacing.sm,
+  error: { ...textBase, color: colors.status.danger, textAlign: 'center' },
+  retryButton: {
+    minHeight: 48,
+    minWidth: w(132),
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    borderRadius: 8,
+    backgroundColor: colors.primary,
   },
   retryText: {
-    color: colors.primary,
-    fontFamily: typography.fontFamily,
-    fontWeight: typography.weights.bold,
-    fontSize: f(typography.sizes.sm),
-  },
-  content: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.lg },
-  hero: {
-    backgroundColor: ACCENT,
-    borderRadius: w(14),
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  heroCaption: {
-    flex: 1,
+    ...textBase,
     color: colors.white,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.md),
     fontWeight: typography.weights.semiBold,
   },
-  heroBadge: {
-    backgroundColor: 'rgba(0,0,0,0.22)',
-    borderRadius: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  heroBadgeText: {
-    color: colors.white,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.xs),
-    fontWeight: typography.weights.bold,
-    letterSpacing: f(0.8),
-  },
-  heroAmount: {
-    color: colors.white,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.display),
-    fontWeight: typography.weights.extraBold,
-  },
-  card: {
+  periodPicker: {
+    minHeight: h(64),
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    borderRadius: 12,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.light.border,
-    borderRadius: w(14),
-    padding: spacing.md,
   },
-  row: {
+  periodButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: colors.light.background,
+  },
+  periodButtonDisabled: { backgroundColor: colors.progressTrack },
+  periodTextWrap: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+  },
+  periodLabel: { ...caption, color: colors.light.secondaryText },
+  periodValue: {
+    ...body,
+    marginTop: spacing.xs,
+    color: colors.primary,
+    fontWeight: typography.weights.semiBold,
+  },
+  hero: {
+    alignItems: 'center',
+    padding: spacing.lg,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+  },
+  heroIcon: {
+    width: w(48),
+    height: w(48),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: w(24),
+    backgroundColor: colors.navy,
+  },
+  heroLabel: { ...body, marginTop: spacing.md, color: colors.white },
+  heroAmount: {
+    fontFamily: typography.fontFamily,
+    fontSize: f(typography.sizes.xxxl),
+    fontWeight: typography.weights.extraBold,
+    color: colors.white,
+    marginTop: spacing.xs,
+    maxWidth: '100%',
+  },
+  heroPeriod: { ...caption, marginTop: spacing.sm, color: colors.white },
+  calculatedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+  },
+  calculatedText: {
+    ...caption,
+    color: colors.status.success,
+    fontWeight: typography.weights.semiBold,
+  },
+
+  metricsRow: { flexDirection: 'row', gap: spacing.md },
+  metricCard: {
+    flex: 1,
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  metricIcon: {
+    width: w(40),
+    height: w(40),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: w(20),
+    backgroundColor: colors.light.background,
+  },
+  metricValue: {
+    fontFamily: typography.fontFamily,
+    fontSize: f(typography.sizes.xl),
+    fontWeight: typography.weights.bold,
+    color: colors.primary,
+    marginTop: spacing.sm,
+  },
+  metricLabel: {
+    ...caption,
+    color: colors.light.secondaryText,
+    marginTop: spacing.xs,
+  },
+  card: {
+    padding: spacing.md,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.light.border,
+  },
+  cardTitle: {
+    ...body,
+    color: colors.primary,
+    fontWeight: typography.weights.semiBold,
+    marginBottom: spacing.md,
+  },
+  detailRow: {
+    minHeight: h(38),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.sm,
-    paddingVertical: h(7),
+    gap: spacing.md,
   },
-  rowLabel: {
-    flex: 1,
-    color: colors.textGray,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.md),
+  detailLabel: { ...body, color: colors.light.secondaryText, flex: 1 },
+  detailLabelStrong: {
+    color: colors.primary,
+    fontWeight: typography.weights.semiBold,
+  },
+  detailValue: {
+    ...body,
+    color: colors.primary,
     fontWeight: typography.weights.medium,
+    flexShrink: 1,
   },
-  rowValue: {
-    color: colors.primary,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.md),
-    fontWeight: typography.weights.semiBold,
+  detailValueStrong: {
+    fontSize: f(typography.sizes.lg),
+    fontWeight: typography.weights.bold,
   },
-  rowValueDanger: { color: colors.status.danger },
   divider: {
-    height: StyleSheet.hairlineWidth,
+    height: 1,
     backgroundColor: colors.light.border,
-    marginTop: h(4),
-    marginBottom: h(2),
+    marginVertical: spacing.sm,
   },
-  netLabel: {
-    flex: 1,
-    color: colors.primary,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.lg),
-    fontWeight: typography.weights.bold,
-  },
-  netValue: {
-    color: colors.status.success,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.lg),
-    fontWeight: typography.weights.bold,
-  },
-  downloadButton: {
-    minHeight: h(52),
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
     marginTop: spacing.md,
-    backgroundColor: ACCENT,
-    borderRadius: spacing.sm,
-    flexDirection: 'row',
+    padding: spacing.md,
+    borderRadius: 8,
+    backgroundColor: colors.light.background,
+  },
+  infoText: { ...caption, color: colors.light.secondaryText, flex: 1 },
+  emptyCard: {
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  downloadText: {
-    color: colors.white,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.md),
-    fontWeight: typography.weights.bold,
-  },
-  titleRow: {
-    minHeight: h(28),
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  sectionMark: {
-    height: h(23),
-    width: spacing.xs,
-    borderRadius: 2,
-    backgroundColor: colors.gold,
-    marginRight: spacing.sm,
-  },
-  sectionTitle: {
-    flex: 1,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.sm),
-    fontWeight: typography.weights.bold,
-    color: colors.primary,
-    letterSpacing: f(1.4),
-  },
-  historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: h(10),
-  },
-  historyDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.light.border,
-  },
-  historyMonth: {
-    flex: 1,
-    color: colors.primary,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.md),
-    fontWeight: typography.weights.semiBold,
-  },
-  historyAmount: {
-    color: colors.textGray,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.md),
-    fontWeight: typography.weights.semiBold,
-  },
-  verifiedBadge: {
+    padding: spacing.lg,
+    borderRadius: 12,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.status.success,
-    borderRadius: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    borderColor: colors.light.border,
   },
-  verifiedText: {
-    color: colors.status.success,
-    fontFamily: typography.fontFamily,
-    fontSize: f(typography.sizes.xs),
-    fontWeight: typography.weights.bold,
-    letterSpacing: f(0.8),
+  emptyTitle: {
+    ...body,
+    color: colors.primary,
+    fontWeight: typography.weights.semiBold,
+    marginTop: spacing.md,
+  },
+  emptyText: {
+    ...body,
+    color: colors.light.secondaryText,
+    textAlign: 'center',
+    marginTop: spacing.xs,
   },
 });
 

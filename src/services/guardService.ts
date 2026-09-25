@@ -1,5 +1,36 @@
 import { apiRequest } from './apiClient';
 
+/**
+ * Photo selected by the guard. Image Picker already returns a ready-to-upload
+ * `file://` URI together with the original file name and MIME type.
+ */
+export type DutyPhoto = {
+  uri: string;
+  fileName?: string | null;
+  type?: string | null;
+};
+
+/** Builds the multipart body the duty API expects (`photo` field). */
+const buildDutyPhotoBody = (photo: DutyPhoto) => {
+  const uri = /^(file|content|ph):\/\//i.test(photo.uri)
+    ? photo.uri
+    : `file://${photo.uri.startsWith('/') ? '' : '/'}${photo.uri}`;
+
+  let name = photo.fileName?.trim() || `duty-photo-${Date.now()}.jpg`;
+  if (!/\.(jpg|jpeg|png|webp)$/i.test(name)) {
+    name = `${name}.jpg`;
+  }
+
+  const body = new FormData();
+  body.append('photo', {
+    uri,
+    name,
+    type:
+      photo.type && photo.type.startsWith('image/') ? photo.type : 'image/jpeg',
+  } as unknown as Blob);
+  return body;
+};
+
 export type GuardDutyDetails = {
   id: number;
   guard_code?: string;
@@ -40,6 +71,40 @@ export type GuardReport = {
   severity: 'low' | 'medium' | 'high';
   notes: string;
   created_at: string;
+};
+
+export type GuardDutyLog = {
+  id: number;
+  site_id?: number | null;
+  site_name?: string | null;
+  status: 'on_duty' | 'off_duty';
+  clock_in_at: string;
+  clock_in_photo?: string | null;
+  clock_out_at?: string | null;
+  clock_out_photo?: string | null;
+  duration_minutes?: number | string | null;
+};
+
+export type GuardDutyStatus = {
+  status: GuardDutyLog['status'];
+  active_log: GuardDutyLog | null;
+  assignment: { site_id: number; site_name: string | null } | null;
+};
+
+export type DutyPhotoMode = 'clock_in' | 'clock_out';
+
+/**
+ * Payroll summary for a date range, calculated by the API from the guard's
+ * logged duty hours (basic salary ÷ (26 × shift hours) = hourly rate).
+ */
+export type GuardSalarySummary = {
+  from: string;
+  to: string;
+  total_shifts: number;
+  total_minutes: number;
+  total_hours: number;
+  hourly_rate: number;
+  calculated_pay: number;
 };
 
 export type PatrolCheckpoint = {
@@ -84,13 +149,45 @@ export const guardService = {
         },
       )
     ).data,
-  updateDutyStatus: async (status: GuardDutyDetails['status']) =>
+  getDutyStatus: async () =>
     (
-      await apiRequest<{ success: boolean; data: GuardDutyDetails }>(
-        '/guard/duty',
+      await apiRequest<{ success: boolean; data: GuardDutyStatus }>(
+        '/guard/duty/status',
+        { authenticated: true },
+      )
+    ).data,
+  getDutyHistory: async () =>
+    (
+      await apiRequest<{ success: boolean; data: GuardDutyLog[] }>(
+        '/guard/duty/history',
+        { authenticated: true },
+      )
+    ).data,
+  getDutySalary: async (from: string, to: string) =>
+    (
+      await apiRequest<{ success: boolean; data: GuardSalarySummary }>(
+        `/guard/duty/salary?from=${from}&to=${to}`,
+        { authenticated: true },
+      )
+    ).data,
+  clockIn: async (photo: DutyPhoto) =>
+    (
+      await apiRequest<{ success: boolean; data: GuardDutyLog }>(
+        '/guard/duty/clock-in',
         {
-          method: 'PUT',
-          body: { status },
+          method: 'POST',
+          body: buildDutyPhotoBody(photo),
+          authenticated: true,
+        },
+      )
+    ).data,
+  clockOut: async (photo: DutyPhoto) =>
+    (
+      await apiRequest<{ success: boolean; data: GuardDutyLog }>(
+        '/guard/duty/clock-out',
+        {
+          method: 'POST',
+          body: buildDutyPhotoBody(photo),
           authenticated: true,
         },
       )

@@ -18,6 +18,7 @@ import {
   type AgencyCoverageRequest,
   type AgencyGuard,
 } from '../../../services/agencyApiService';
+import { ApiError } from '../../../services/apiClient';
 import { colors } from '../../../styles/colors';
 import { scaleFont } from '../../../styles/dimensions';
 import { spacing } from '../../../styles/spacing';
@@ -112,8 +113,12 @@ export default function AgencyCoverageRequests({
         t('coverageManagement.requestUpdatedHint'),
       );
     } catch (updateError) {
+      const limitReached =
+        updateError instanceof ApiError && updateError.status === 403;
       Alert.alert(
-        t('coverageManagement.unableToUpdate'),
+        limitReached
+          ? t('dashboard.planLimitTitle')
+          : t('coverageManagement.unableToUpdate'),
         updateError instanceof Error ? updateError.message : t('auth.tryAgain'),
       );
     } finally {

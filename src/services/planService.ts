@@ -44,6 +44,16 @@ export type AgencySubscription = {
 
 type ApiEnvelope<T> = { success: boolean; data: T; message?: string };
 
+/** A null/undefined limit means the plan is unlimited for that resource. */
+export const isUnlimited = (limit?: number | null): boolean =>
+  limit === null || limit === undefined;
+
+/** True when the plan has a finite allowance and it has been fully used. */
+export const isUsageAtLimit = (usage?: PlanUsage | null): boolean =>
+  Boolean(
+    usage && !isUnlimited(usage.limit) && usage.used >= (usage.limit as number),
+  );
+
 export const planService = {
   getPlans: async (): Promise<AgencyPlan[]> =>
     (await apiRequest<ApiEnvelope<AgencyPlan[]>>('/plans')).data ?? [],
