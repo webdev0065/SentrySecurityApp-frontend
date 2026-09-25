@@ -250,6 +250,27 @@ const GuardDutyScreen = () => {
             </View>
           </Card>
           <Card
+            title={t('guard.duty.salaryTitle')}
+            action={() => navigation.navigate('GuardSalary')}
+          >
+            <ScalePressable
+              style={styles.assignmentRow}
+              onPress={() => navigation.navigate('GuardSalary')}
+              accessibilityRole="button"
+              accessibilityLabel={t('guard.duty.salaryRow')}
+            >
+              <IconBox icon="dollar-sign" />
+              <View style={styles.flex}>
+                <Text style={styles.assignmentName}>
+                  {t('guard.duty.salaryRow')}
+                </Text>
+                <Text style={styles.muted}>
+                  {t('guard.duty.salaryCaption')}
+                </Text>
+              </View>
+            </ScalePressable>
+          </Card>
+          <Card
             title={t('guard.duty.photoLogTitle')}
             action={() => showUnavailable(t('guard.duty.photoLog'))}
           >

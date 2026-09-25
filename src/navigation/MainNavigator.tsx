@@ -7,6 +7,7 @@ import AgencySitesScreen from '../features/dashboard/screens/AgencySitesScreen';
 import AgencyProfileScreen from '../features/dashboard/screens/AgencyProfileScreen';
 import AgencyPlanScreen from '../features/dashboard/screens/AgencyPlanScreen';
 import AgencyGuardsScreen from '../features/dashboard/screens/AgencyGuardsScreen';
+import AgencyInvoicesScreen from '../features/dashboard/screens/AgencyInvoicesScreen';
 
 import { MainStackParamList } from './types';
 
@@ -25,6 +26,7 @@ const MainNavigator = () => {
       <Stack.Screen name="AgencyProfile" component={AgencyProfileScreen} />
       <Stack.Screen name="AgencyGuards" component={AgencyGuardsScreen} />
       <Stack.Screen name="AgencyPlan" component={AgencyPlanScreen} />
+      <Stack.Screen name="AgencyInvoices" component={AgencyInvoicesScreen} />
     </Stack.Navigator>
   );
 };

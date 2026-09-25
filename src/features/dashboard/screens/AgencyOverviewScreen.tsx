@@ -182,6 +182,7 @@ const AgencyOverviewScreen: React.FC<Props> = ({ navigation }) => {
             caption="1 pending • 2 invoices"
             color="#5A8DFF"
             tint="#EEF3FF"
+            onPress={() => navigation.navigate('AgencyInvoices')}
           />
           <Insight
             icon="star"
@@ -301,6 +302,7 @@ const Insight = ({
   color,
   tint,
   stars,
+  onPress,
 }: {
   icon: React.ComponentProps<typeof Feather>['name'];
   title: string;
@@ -309,8 +311,14 @@ const Insight = ({
   color: string;
   tint: string;
   stars?: boolean;
+  onPress?: () => void;
 }) => (
-  <TouchableOpacity style={s.insight}>
+  <TouchableOpacity
+    style={s.insight}
+    onPress={onPress}
+    activeOpacity={onPress ? 0.8 : 1}
+    accessibilityRole={onPress ? 'button' : undefined}
+  >
     <View style={[s.insightIcon, { backgroundColor: tint }]}>
       <Icon name={icon} color={color} />
     </View>

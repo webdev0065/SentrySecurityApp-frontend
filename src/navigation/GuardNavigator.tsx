@@ -8,6 +8,7 @@ import GuardProfileScreen from '../features/guard/screens/GuardProfileScreen';
 import GuardPersonalInfoScreen from '../features/guard/screens/GuardPersonalInfoScreen';
 import GuardDocumentsScreen from '../features/guard/screens/GuardDocumentsScreen';
 import GuardBankDetailsScreen from '../features/guard/screens/GuardBankDetailsScreen';
+import GuardSalaryScreen from '../features/guard/screens/GuardSalaryScreen';
 import GuardEmergencyContactScreen from '../features/guard/screens/GuardEmergencyContactScreen';
 import GuardSectionScreen from '../features/guard/screens/GuardSectionScreen';
 import type { GuardStackParamList } from './types';
@@ -26,6 +27,7 @@ const GuardNavigator = () => (
     />
     <Stack.Screen name="GuardDocuments" component={GuardDocumentsScreen} />
     <Stack.Screen name="GuardBankDetails" component={GuardBankDetailsScreen} />
+    <Stack.Screen name="GuardSalary" component={GuardSalaryScreen} />
     <Stack.Screen
       name="GuardEmergencyContact"
       component={GuardEmergencyContactScreen}
