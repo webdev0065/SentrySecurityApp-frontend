@@ -1,69 +1,132 @@
-/**
- * Frontend-only invoice store.
- *
- * The backend does not expose invoice endpoints yet, so invoices are kept in a
- * module-level store for the app session. The async shape mirrors the other
- * services so an `apiRequest`-backed implementation can be swapped in later
- * without touching the UI.
- */
-export type AgencyInvoiceStatus = 'pending' | 'paid';
+import { apiRequest } from './apiClient';
 
+export type InvoiceStatus = 'pending' | 'paid' | 'overdue';
+
+/** Invoice row returned by the agency invoice APIs. */
 export type AgencyInvoice = {
   id: number;
-  client: string;
-  description: string;
+  agency_id: number;
+  client_id: number;
+  client_name: string;
+  site_name?: string | null;
+  description: string | null;
   amount: number;
+  /** Display code derived from the invoice id, e.g. `INV-12`. */
+  invoice_code: string;
   /** ISO date, YYYY-MM-DD. */
   due_date: string;
-  status: AgencyInvoiceStatus;
+  status: InvoiceStatus;
+  paid_at: string | null;
   created_at: string;
 };
 
-export type CreateAgencyInvoiceInput = {
-  client: string;
-  description: string;
-  amount: number;
-  due_date: string;
+/** A client the agency can bill, with its assigned guards and salary total. */
+export type AgencyInvoiceClient = {
+  client_id: number;
+  client_name: string;
+  guards_assigned: number;
+  total_salary: number;
 };
 
-// Reference content from the design; the two entries total the ₹45,000 shown
-// on the overview "INVOICES" insight.
-let nextId = 3;
-const store: AgencyInvoice[] = [
-  {
-    id: 1,
-    client: 'Cyber Hub Offices',
-    description: 'Subscription Charges',
-    amount: 12000,
-    due_date: '2026-10-05',
-    status: 'pending',
-    created_at: '2026-09-01T09:00:00.000Z',
-  },
-  {
-    id: 2,
-    client: 'Sunrise Mall',
-    description: 'Security Services',
-    amount: 33000,
-    due_date: '2026-09-30',
-    status: 'pending',
-    created_at: '2026-09-03T09:00:00.000Z',
-  },
-];
+export type AgencyInvoiceClientSummary = AgencyInvoiceClient & {
+  user_id: number;
+  site_name: string;
+};
+
+export type CreateAgencyInvoiceInput = {
+  clientId: number;
+  amount: number;
+  description?: string;
+  /** ISO date, YYYY-MM-DD. */
+  dueDate: string;
+};
+
+/** Invoice row returned by the client invoice API. */
+export type ClientInvoice = {
+  id: number;
+  invoice_code: string;
+  agency_id: number;
+  agency_name: string | null;
+  site_name: string | null;
+  description: string | null;
+  amount: number;
+  /** ISO date, YYYY-MM-DD. */
+  due_date: string;
+  status: InvoiceStatus;
+  paid_at: string | null;
+  created_at: string;
+};
+
+/**
+ * Postgres returns `numeric` columns as strings, so amounts are normalised to
+ * numbers once, at the service boundary, and are numbers everywhere in the UI.
+ */
+const withNumericAmount = <T extends { amount: unknown }>(invoice: T) => ({
+  ...invoice,
+  amount: Number(invoice.amount) || 0,
+});
+
+const withNumericSummary = <T extends { total_salary: unknown }>(summary: T) => ({
+  ...summary,
+  total_salary: Number(summary.total_salary) || 0,
+});
 
 export const invoiceService = {
-  getInvoices: async (): Promise<AgencyInvoice[]> => [...store],
-  createInvoice: async (input: CreateAgencyInvoiceInput): Promise<AgencyInvoice> => {
-    const invoice: AgencyInvoice = {
-      id: nextId,
-      client: input.client,
-      description: input.description,
-      amount: input.amount,
-      due_date: input.due_date,
-      status: 'pending',
-      created_at: new Date().toISOString(),
-    };
-    nextId += 1;
-    store.unshift(invoice);
-    return invoice;
-  },
+  /** Clients the signed-in agency can bill (with guards + salary totals). */
+  getAgencyClients: async () =>
+    (
+      await apiRequest<{
+        success: boolean;
+        data: AgencyInvoiceClient[];
+      }>('/agency/invoices/clients', { authenticated: true })
+    ).data.map(withNumericSummary),
+
+  getAgencyClientSummary: async (clientId: number) =>
+    withNumericSummary(
+      (
+        await apiRequest<{
+          success: boolean;
+          data: AgencyInvoiceClientSummary;
+        }>(`/agency/invoices/clients/${clientId}/summary`, {
+          authenticated: true,
+        })
+      ).data,
+    ),
+
+  getAgencyInvoices: async (status?: InvoiceStatus) =>
+    (
+      await apiRequest<{ success: boolean; data: AgencyInvoice[] }>(
+        `/agency/invoices${status ? `?status=${status}` : ''}`,
+        { authenticated: true },
+      )
+    ).data.map(withNumericAmount),
+
+  createAgencyInvoice: async (input: CreateAgencyInvoiceInput) =>
+    withNumericAmount(
+      (
+        await apiRequest<{ success: boolean; data: AgencyInvoice }>(
+          '/agency/invoices',
+          { method: 'POST', authenticated: true, body: input },
+        )
+      ).data,
+    ),
+
+  updateAgencyInvoiceStatus: async (id: number, status: InvoiceStatus) =>
+    withNumericAmount(
+      (
+        await apiRequest<{ success: boolean; data: AgencyInvoice }>(
+          `/agency/invoices/${id}/status`,
+          { method: 'PATCH', authenticated: true, body: { status } },
+        )
+      ).data,
+    ),
+
+  /** Invoices issued to the signed-in client. */
+  getClientInvoices: async (status?: InvoiceStatus) =>
+    (
+      await apiRequest<{ success: boolean; data: ClientInvoice[] }>(
+        `/client/invoices${status ? `?status=${status}` : ''}`,
+        { authenticated: true },
+      )
+    ).data.map(withNumericAmount),
 };

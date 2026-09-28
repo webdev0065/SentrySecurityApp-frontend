@@ -113,75 +113,66 @@ const GuardReportScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.sectionMark} />
-              <Text style={styles.sectionTitle}>
-                {t('guard.report.reportDetails')}
-              </Text>
-            </View>
-
-            <Text style={styles.label}>{t('guard.report.severity')}</Text>
-            <View style={styles.severityRow}>
-              {severities.map(option => {
-                const active = severity === option.key;
-                return (
-                  <ScalePressable
-                    key={option.key}
+          <Text style={styles.label}>{t('guard.report.severity')}</Text>
+          <View style={styles.severityRow}>
+            {severities.map(option => {
+              const active = severity === option.key;
+              return (
+                <ScalePressable
+                  key={option.key}
+                  style={[
+                    styles.severityOption,
+                    active && styles.severityActive,
+                  ]}
+                  onPress={() => setSeverity(option.key)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text
                     style={[
-                      styles.severityOption,
-                      active && styles.severityActive,
+                      styles.severityText,
+                      active && styles.severityTextActive,
                     ]}
-                    onPress={() => setSeverity(option.key)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
                   >
-                    <Text
-                      style={[
-                        styles.severityText,
-                        active && styles.severityTextActive,
-                      ]}
-                    >
-                      {t(option.labelKey)}
-                    </Text>
-                  </ScalePressable>
-                );
-              })}
-            </View>
-
-            <Text style={styles.label}>{t('guard.report.whatHappened')}</Text>
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              style={styles.notes}
-              placeholder={t('guard.report.notesPlaceholder')}
-              placeholderTextColor={colors.textGray}
-              multiline
-              textAlignVertical="top"
-              accessibilityLabel={t('guard.report.incidentDetails')}
-            />
-
-            <Text style={styles.label}>{t('guard.report.attachments')}</Text>
-            <ScalePressable
-              style={styles.attach}
-              onPress={() =>
-                Alert.alert(
-                  t('guard.report.photoTitle'),
-                  t('guard.report.photoBody'),
-                )
-              }
-              accessibilityLabel={t('guard.report.attachPhoto')}
-            >
-              <Feather
-                name="camera"
-                size={scaleFont(22)}
-                color={colors.textGray}
-              />
-              <Text style={styles.attachText}>
-                {t('guard.report.attachPhoto')}
-              </Text>
-            </ScalePressable>
+                    {t(option.labelKey)}
+                  </Text>
+                </ScalePressable>
+              );
+            })}
           </View>
+
+          <Text style={styles.label}>{t('guard.report.whatHappened')}</Text>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            style={styles.notes}
+            placeholder={t('guard.report.notesPlaceholder')}
+            placeholderTextColor={colors.textGray}
+            multiline
+            textAlignVertical="top"
+            accessibilityLabel={t('guard.report.incidentDetails')}
+          />
+
+          <Text style={styles.label}>{t('guard.report.attachments')}</Text>
+          <ScalePressable
+            style={styles.attach}
+            onPress={() =>
+              Alert.alert(
+                t('guard.report.photoTitle'),
+                t('guard.report.photoBody'),
+              )
+            }
+            accessibilityLabel={t('guard.report.attachPhoto')}
+          >
+            <Feather
+              name="camera"
+              size={scaleFont(22)}
+              color={colors.textGray}
+            />
+            <Text style={styles.attachText}>
+              {t('guard.report.attachPhoto')}
+            </Text>
+          </ScalePressable>
 
           <ScalePressable
             style={[styles.submit, submitDisabled && styles.submitDisabled]}
@@ -240,40 +231,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     gap: spacing.md,
   },
-  card: {
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.light.border,
-    borderRadius: scaleWidth(14),
-    backgroundColor: colors.white,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  sectionMark: {
-    width: spacing.xs,
-    height: scaleHeight(20),
-    borderRadius: 2,
-    backgroundColor: colors.gold,
-    marginRight: spacing.sm,
-  },
-  sectionTitle: {
-    flex: 1,
-    color: colors.primary,
-    fontFamily: typography.fontFamily,
-    fontSize: scaleFont(typography.sizes.sm),
-    fontWeight: typography.weights.bold,
-    letterSpacing: scaleFont(1.6),
-  },
   label: {
-    marginTop: spacing.sm,
     marginBottom: spacing.xs,
     color: colors.primary,
     fontFamily: typography.fontFamily,

@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Feather from 'react-native-vector-icons/Feather';
 import { useTranslation } from 'react-i18next';
 import ClientTopNavigation from '../components/ClientTopNavigation';
 import ClientBottomNavigation, {
@@ -26,6 +25,7 @@ import ClientInformationScreen, {
   type ClientInformationPage,
 } from '../components/ClientInformationScreen';
 import ClientAlerts from '../components/ClientAlerts';
+import ClientInvoices from '../components/ClientInvoices';
 import AgencyProfileMenu from '../../dashboard/components/AgencyProfileMenu';
 import ScalePressable from '../../../components/common/ScalePressable';
 import {
@@ -154,15 +154,8 @@ export default function ClientPortalScreen() {
           {!loading && !error && tab === 'request' ? (
             <ClientCoverageRequests />
           ) : null}
-          {!loading && !error && tab === 'invoices' ? (
-            <Section title={t('client.invoices')}>
-              <Empty
-                icon="file-text"
-                title={t('client.noInvoices')}
-                body={t('client.noInvoicesHint')}
-              />
-            </Section>
-          ) : null}
+          {/* Invoices render inside the standard padded content area. */}
+          {!loading && !error && tab === 'invoices' ? <ClientInvoices /> : null}
           {!loading && !error && tab === 'alerts' ? <ClientAlerts /> : null}
           {!loading && !error && tab === 'profile' && details ? (
             <ClientProfilePanel
@@ -211,77 +204,16 @@ export default function ClientPortalScreen() {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <View style={s.section}>
-      <Text style={s.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-}
-function Empty({
-  icon,
-  title,
-  body,
-}: {
-  icon: React.ComponentProps<typeof Feather>['name'];
-  title: string;
-  body: string;
-}) {
-  return (
-    <View style={s.empty}>
-      <View style={s.emptyIcon}>
-        <Feather name={icon} size={scaleFont(24)} color={colors.primary} />
-      </View>
-      <Text style={s.cardTitle}>{title}</Text>
-      <Text style={s.muted}>{body}</Text>
-    </View>
-  );
-}
-
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white, position: 'relative' },
   scroll: { flex: 1 },
   informationContent: { flex: 1, padding: spacing.md },
   content: { padding: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
-  section: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: spacing.md,
-    padding: spacing.md,
-    gap: spacing.md,
-    backgroundColor: colors.white,
-  },
-  sectionTitle: {
-    color: colors.primary,
-    fontSize: scaleFont(typography.sizes.lg),
-    fontWeight: typography.weights.bold,
-    borderLeftWidth: spacing.xs,
-    borderLeftColor: colors.gold,
-    paddingLeft: spacing.sm,
-  },
   state: {
     minHeight: 180,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
-  },
-  empty: { alignItems: 'flex-start', gap: spacing.sm },
-  emptyIcon: {
-    padding: spacing.sm,
-    borderRadius: spacing.sm,
-    backgroundColor: colors.light.background,
-  },
-  cardTitle: {
-    color: colors.primary,
-    fontSize: scaleFont(typography.sizes.md),
-    fontWeight: typography.weights.semiBold,
   },
   muted: {
     color: colors.textGray,

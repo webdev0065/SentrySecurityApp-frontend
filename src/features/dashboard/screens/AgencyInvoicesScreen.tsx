@@ -32,20 +32,19 @@ import AgencyBottomNavigation, {
 import AgencyProfileMenu from '../components/AgencyProfileMenu';
 import AgencyTopNavigation from '../components/AgencyTopNavigation';
 import {
-  agencyApiService,
-  type AgencyCoverageRequest,
-  type AgencyGuard,
-  type AgencySite,
-} from '../../../services/agencyApiService';
-import {
   invoiceService,
   type AgencyInvoice,
+  type AgencyInvoiceClient,
+  type InvoiceStatus,
 } from '../../../services/invoiceService';
 
 type Props = NativeStackScreenProps<MainStackParamList, 'AgencyInvoices'>;
 
 /** Burnt-orange accent used for invoice amounts and pending badges. */
 const AMBER = '#B9640A';
+const AMBER_TINT = '#FDF1E0';
+const SUCCESS_TINT = '#E4F6EA';
+const DANGER_TINT = '#FDECEC';
 
 const formatINR = (value: number): string =>
   `₹${Math.round(value).toLocaleString('en-IN')}`;
@@ -54,6 +53,42 @@ const formatDueDate = (iso: string): string => {
   const [year, month, day] = iso.split('-');
   if (!year || !month || !day) return iso;
   return `${day}/${month}/${year}`;
+};
+
+type InvoiceAppearance = {
+  icon: 'clock' | 'check-circle' | 'alert-circle';
+  color: string;
+  tint: string;
+  label: string;
+};
+
+/** Status icon + tint + label shared by the summary strip and the rows. */
+const statusAppearance = (
+  status: InvoiceStatus,
+  labels: { pending: string; paid: string; overdue: string },
+): InvoiceAppearance => {
+  if (status === 'paid') {
+    return {
+      icon: 'check-circle',
+      color: colors.status.success,
+      tint: SUCCESS_TINT,
+      label: labels.paid,
+    };
+  }
+  if (status === 'overdue') {
+    return {
+      icon: 'alert-circle',
+      color: colors.status.danger,
+      tint: DANGER_TINT,
+      label: labels.overdue,
+    };
+  }
+  return {
+    icon: 'clock',
+    color: AMBER,
+    tint: AMBER_TINT,
+    label: labels.pending,
+  };
 };
 
 type DateParts = { year: number; month: number; day: number };
@@ -79,15 +114,14 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const [invoices, setInvoices] = useState<AgencyInvoice[]>([]);
-  const [coverageRequests, setCoverageRequests] = useState<
-    AgencyCoverageRequest[]
-  >([]);
-  const [sites, setSites] = useState<AgencySite[]>([]);
-  const [guards, setGuards] = useState<AgencyGuard[]>([]);
+  const [clients, setClients] = useState<AgencyInvoiceClient[]>([]);
   const [clientsLoading, setClientsLoading] = useState(true);
+  const [listError, setListError] = useState('');
+  const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
 
   const [clientOpen, setClientOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState('');
+  const [selectedClient, setSelectedClient] =
+    useState<AgencyInvoiceClient | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -110,107 +144,53 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
   const [customValue, setCustomValue] = useState('');
   const [customError, setCustomError] = useState('');
 
+  /**
+   * Billable clients and invoices both come from the invoice API:
+   * `GET /agency/invoices/clients` already aggregates each client's assigned
+   * guards and salary total, so no coverage/site/guard fan-out is needed.
+   */
+  const load = useCallback(async () => {
+    setClientsLoading(true);
+    setListError('');
+    try {
+      const [clientList, items] = await Promise.all([
+        invoiceService.getAgencyClients(),
+        invoiceService.getAgencyInvoices(),
+      ]);
+      setClients(clientList);
+      setInvoices(items);
+    } catch (loadError) {
+      setListError(
+        loadError instanceof Error ? loadError.message : t('invoice.loadFailed'),
+      );
+    } finally {
+      setClientsLoading(false);
+    }
+  }, [t]);
+
   useFocusEffect(
     useCallback(() => {
-      let active = true;
-      setClientsLoading(true);
-      invoiceService
-        .getInvoices()
-        .then(items => {
-          if (active) setInvoices(items);
-        })
-        .catch(() => undefined);
-      // Existing integrations: client → coverage requests → sites → guards.
-      agencyApiService
-        .getCoverageRequests()
-        .then(requests => {
-          if (active) setCoverageRequests(requests);
-        })
-        .catch(() => undefined)
-        .finally(() => {
-          if (active) setClientsLoading(false);
-        });
-      agencyApiService
-        .getSites()
-        .then(items => {
-          if (active) setSites(items);
-        })
-        .catch(() => undefined);
-      agencyApiService
-        .getGuards()
-        .then(items => {
-          if (active) setGuards(items);
-        })
-        .catch(() => undefined);
-      return () => {
-        active = false;
-      };
-    }, []),
+      load();
+    }, [load]),
   );
 
-  const clients = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          coverageRequests
-            .map(request => (request.company_name || '').trim())
-            .filter(Boolean),
-        ),
-      ),
-    [coverageRequests],
+  /** Guards assigned to the selected client + their combined salary. */
+  const clientStats = useMemo(
+    () => ({
+      guardCount: selectedClient?.guards_assigned ?? 0,
+      totalSalary: selectedClient?.total_salary ?? 0,
+    }),
+    [selectedClient],
   );
 
-  const clientOptions = useMemo(
-    () =>
-      Array.from(
-        new Set([...clients, ...invoices.map(invoice => invoice.client)]),
-      ),
-    [clients, invoices],
-  );
-
-  /**
-   * Guards assigned to the selected client's site(s) and their combined
-   * salary, derived from existing APIs:
-   * coverage request (company) → site (source_coverage_request_id) → guards.
-   */
-  const clientStats = useMemo(() => {
-    const requestIds = new Set(
-      coverageRequests
-        .filter(
-          request => (request.company_name || '').trim() === selectedClient,
-        )
-        .map(request => request.id),
-    );
-    const clientSites = sites.filter(
-      site =>
-        site.source_coverage_request_id != null &&
-        requestIds.has(site.source_coverage_request_id),
-    );
-    const siteIds = new Set(clientSites.map(site => site.id));
-    const clientGuards = guards.filter(
-      guard => guard.site_id != null && siteIds.has(guard.site_id),
-    );
-    const totalSalary = clientGuards.reduce((sum, guard) => {
-      const basic = Number(guard.basic_salary ?? 0);
-      const allowance = Number(guard.allowances ?? 0);
-      return (
-        sum +
-        (Number.isFinite(basic) ? basic : 0) +
-        (Number.isFinite(allowance) ? allowance : 0)
-      );
-    }, 0);
-    return {
-      guardCount: clientGuards.length,
-      totalSalary: Math.round(totalSalary * 100) / 100,
-    };
-  }, [coverageRequests, sites, guards, selectedClient]);
+  /** Sent-invoice list for the agency. */
 
   // Selecting a client auto-fills the amount with its site salary total.
   useEffect(() => {
     if (!selectedClient) return;
     setAddOns(emptyAddOns);
-    setAmount(amountFrom(clientStats.totalSalary, emptyAddOns));
-  }, [selectedClient, clientStats.totalSalary]);
+    setAmount(amountFrom(selectedClient.total_salary, emptyAddOns));
+  }, [selectedClient]);
 
   const resetFeedback = () => {
     if (error) setError('');
@@ -307,25 +287,52 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
     setSuccess('');
     setSending(true);
     try {
-      await invoiceService.createInvoice({
-        client: selectedClient,
-        description: description.trim(),
+      await invoiceService.createAgencyInvoice({
+        clientId: selectedClient.client_id,
         amount: parsedAmount,
-        due_date: dueDate,
+        description: description.trim(),
+        dueDate,
       });
-      setInvoices(await invoiceService.getInvoices());
-      setSelectedClient('');
+      setInvoices(await invoiceService.getAgencyInvoices());
+      setSelectedClient(null);
       setAmount('');
       setDescription('');
       setDueDate('');
       setAddOns(emptyAddOns);
-      setSuccess(t('invoice.sent', { client: selectedClient }));
+      setSuccess(t('invoice.sent', { client: selectedClient.client_name }));
     } catch (sendError) {
       setError(
         sendError instanceof Error ? sendError.message : t('invoice.sendFailed'),
       );
     } finally {
       setSending(false);
+    }
+  };
+
+  /** Agency-side payment tracking: tapping a badge flips pending ↔ paid. */
+  const toggleStatus = async (invoice: AgencyInvoice) => {
+    if (statusUpdatingId !== null) return;
+    const next: InvoiceStatus = invoice.status === 'paid' ? 'pending' : 'paid';
+    setStatusUpdatingId(invoice.id);
+    setListError('');
+    try {
+      const updated = await invoiceService.updateAgencyInvoiceStatus(
+        invoice.id,
+        next,
+      );
+      setInvoices(items =>
+        items.map(item =>
+          item.id === updated.id ? { ...item, ...updated } : item,
+        ),
+      );
+    } catch (updateError) {
+      setListError(
+        updateError instanceof Error
+          ? updateError.message
+          : t('invoice.statusFailed'),
+      );
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
 
@@ -378,7 +385,7 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityLabel={t('invoice.selectClient')}
           >
             <Text style={[s.selectText, !selectedClient && s.placeholder]}>
-              {selectedClient || '—'}
+              {selectedClient ? selectedClient.client_name : '—'}
             </Text>
             <Feather
               name={clientOpen ? 'chevron-up' : 'chevron-down'}
@@ -523,46 +530,159 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
           <View style={s.band} />
 
           <Text style={s.section}>{t('invoice.invoicesSent')}</Text>
+          {listError ? (
+            <View style={s.alertError}>
+              <Feather
+                name="alert-circle"
+                size={f(16)}
+                color={colors.status.danger}
+              />
+              <Text style={s.alertErrorText}>{listError}</Text>
+              <ScalePressable
+                style={s.retry}
+                onPress={load}
+                accessibilityRole="button"
+                accessibilityLabel={t('invoice.retry')}
+              >
+                <Text style={s.retryText}>{t('invoice.retry')}</Text>
+              </ScalePressable>
+            </View>
+          ) : null}
           <View style={s.list}>
-            {invoices.length === 0 ? (
+            {clientsLoading ? (
               <View style={s.empty}>
-                <Feather name="file-text" size={f(24)} color={colors.textGray} />
+                <ActivityIndicator color={colors.primary} />
+                <Text style={s.emptyText}>{t('invoice.loadingInvoices')}</Text>
+              </View>
+            ) : invoices.length === 0 ? (
+              <View style={s.empty}>
+                <View style={s.emptyIcon}>
+                  <Feather name="file-text" size={f(22)} color={colors.primary} />
+                </View>
                 <Text style={s.emptyText}>{t('invoice.noInvoices')}</Text>
               </View>
             ) : (
-              invoices.map((invoice, index) => (
-                <View
-                  key={invoice.id}
-                  style={[s.row, index > 0 && s.rowDivider]}
-                >
-                  <View style={s.rowCopy}>
-                    <Text style={s.rowClient}>{invoice.client}</Text>
-                    {invoice.description ? (
-                      <Text style={s.rowDescription}>{invoice.description}</Text>
-                    ) : null}
-                    <Text style={s.rowAmount}>{formatINR(invoice.amount)}</Text>
-                  </View>
-                  <View
-                    style={[
-                      s.badge,
-                      invoice.status === 'paid' ? s.badgePaid : s.badgePending,
-                    ]}
-                  >
-                    <Text
+              <>
+                {invoices.map(invoice => {
+                  const isPaid = invoice.status === 'paid';
+                  const appearance = statusAppearance(invoice.status, {
+                    pending: t('invoice.pending'),
+                    paid: t('invoice.paid'),
+                    overdue: t('invoice.overdue'),
+                  });
+                  return (
+                    <View
+                      key={invoice.id}
                       style={[
-                        s.badgeText,
-                        invoice.status === 'paid'
-                          ? s.badgeTextPaid
-                          : s.badgeTextPending,
+                        s.row,
+                        isPaid
+                          ? s.rowPaid
+                          : invoice.status === 'overdue'
+                          ? s.rowOverdue
+                          : s.rowOpen,
                       ]}
                     >
-                      {invoice.status === 'paid'
-                        ? t('invoice.paid')
-                        : t('invoice.pending')}
-                    </Text>
-                  </View>
-                </View>
-              ))
+                      <View
+                        style={[
+                          s.rowIcon,
+                          { backgroundColor: appearance.tint },
+                        ]}
+                      >
+                        <Feather
+                          name={appearance.icon}
+                          size={f(18)}
+                          color={appearance.color}
+                        />
+                      </View>
+                      <View style={s.rowCopy}>
+                        <Text style={s.rowClient} numberOfLines={1}>
+                          {invoice.client_name}
+                        </Text>
+                        {invoice.description ? (
+                          <Text style={s.rowDescription} numberOfLines={1}>
+                            {invoice.description}
+                          </Text>
+                        ) : null}
+                        <Text style={s.rowMeta}>
+                          {invoice.site_name
+                            ? `${invoice.invoice_code} · ${invoice.site_name}`
+                            : invoice.invoice_code}
+                        </Text>
+                        {isPaid && invoice.paid_at ? (
+                          <View style={s.rowIconLine}>
+                            <Feather
+                              name="check-circle"
+                              size={f(12)}
+                              color={colors.status.success}
+                            />
+                            <Text style={[s.rowMeta, s.rowPaidMeta]}>
+                              {t('invoice.paidOn', {
+                                date: formatDueDate(invoice.paid_at.slice(0, 10)),
+                              })}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={s.rowIconLine}>
+                            <Feather
+                              name="calendar"
+                              size={f(12)}
+                              color={colors.textGray}
+                            />
+                            <Text style={s.rowMeta}>
+                              {t('invoice.dueShort', {
+                                date: formatDueDate(invoice.due_date),
+                              })}
+                            </Text>
+                          </View>
+                        )}
+                        <Text style={s.rowAmount}>
+                          {formatINR(invoice.amount)}
+                        </Text>
+                      </View>
+                      <ScalePressable
+                        style={[
+                          s.badge,
+                          { backgroundColor: appearance.tint },
+                        ]}
+                        onPress={() => toggleStatus(invoice)}
+                        disabled={statusUpdatingId !== null}
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          isPaid
+                            ? t('invoice.markPending')
+                            : t('invoice.markPaid')
+                        }
+                        accessibilityState={{
+                          disabled: statusUpdatingId !== null,
+                        }}
+                      >
+                        {statusUpdatingId === invoice.id ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={appearance.color}
+                          />
+                        ) : (
+                          <>
+                            <Feather
+                              name={isPaid ? 'rotate-ccw' : 'check'}
+                              size={f(11)}
+                              color={appearance.color}
+                            />
+                            <Text
+                              style={[
+                                s.badgeText,
+                                { color: appearance.color },
+                              ]}
+                            >
+                              {appearance.label}
+                            </Text>
+                          </>
+                        )}
+                      </ScalePressable>
+                    </View>
+                  );
+                })}
+              </>
             )}
           </View>
         </ScrollView>
@@ -602,7 +722,7 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
                   <ActivityIndicator color={colors.primary} />
                   <Text style={s.hint}>{t('invoice.loadingClients')}</Text>
                 </View>
-              ) : clientOptions.length === 0 ? (
+              ) : clients.length === 0 ? (
                 <View style={s.optionState}>
                   <Text style={s.optionStateTitle}>
                     {t('invoice.noClients')}
@@ -610,14 +730,15 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
                   <Text style={s.hint}>{t('invoice.noClientsHint')}</Text>
                 </View>
               ) : (
-                clientOptions.map(option => {
-                  const selected = option === selectedClient;
+                clients.map(client => {
+                  const selected =
+                    client.client_id === selectedClient?.client_id;
                   return (
                     <ScalePressable
-                      key={option}
+                      key={client.client_id}
                       style={[s.option, selected && s.optionSelected]}
                       onPress={() => {
-                        setSelectedClient(option);
+                        setSelectedClient(client);
                         setClientOpen(false);
                         resetFeedback();
                       }}
@@ -627,7 +748,7 @@ const AgencyInvoicesScreen: React.FC<Props> = ({ navigation }) => {
                       <Text
                         style={[s.optionText, selected && s.optionTextSelected]}
                       >
-                        {option}
+                        {client.client_name}
                       </Text>
                       {selected ? (
                         <Feather
@@ -959,10 +1080,9 @@ const s = StyleSheet.create({
   sendText: { color: colors.white, fontSize: f(17), fontWeight: '700' },
   sendTextDisabled: { color: '#6B7280' },
   band: {
-    height: h(8),
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: -w(16),
-    marginVertical: h(22),
+    height: h(1),
+    backgroundColor: '#DCDCDC',
+    marginVertical: h(18),
   },
   statsCard: {
     borderWidth: 1,
@@ -1041,27 +1161,42 @@ const s = StyleSheet.create({
     fontSize: f(15),
     fontWeight: '600',
   },
-  list: {
-    borderWidth: 1,
-    borderColor: '#DCDCDC',
-    borderRadius: w(8),
-    overflow: 'hidden',
-    backgroundColor: colors.white,
-  },
+  /** Inset rows inside the screen padding, using the same gaps as other lists. */
+  list: { gap: h(8) },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: w(14),
+    gap: w(10),
+    paddingHorizontal: w(12),
     paddingVertical: h(14),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#DCDCDC',
+    borderRadius: w(8),
+    borderLeftWidth: w(4),
   },
-  rowDivider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E5E5E5',
+  rowOpen: { borderLeftColor: AMBER },
+  rowOverdue: { borderLeftColor: colors.status.danger },
+  rowPaid: { borderLeftColor: colors.status.success },
+  rowIcon: {
+    width: w(38),
+    height: w(38),
+    borderRadius: w(8),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  rowCopy: { flex: 1, paddingRight: w(10) },
+  rowCopy: { flex: 1 },
   rowClient: { color: colors.primary, fontSize: f(17), fontWeight: '700' },
   rowDescription: { color: '#707070', fontSize: f(14), marginTop: h(3) },
+  rowMeta: { color: colors.textGray, fontSize: f(12), marginTop: h(2) },
+  rowIconLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: w(4),
+    marginTop: h(3),
+  },
+  rowPaidMeta: { color: colors.status.success, fontWeight: '600', marginTop: 0 },
   rowAmount: {
     color: AMBER,
     fontSize: f(17),
@@ -1069,18 +1204,59 @@ const s = StyleSheet.create({
     marginTop: h(5),
   },
   badge: {
-    borderWidth: 1,
-    borderRadius: w(6),
-    paddingHorizontal: w(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: w(4),
+    borderRadius: w(999),
+    paddingHorizontal: w(10),
     paddingVertical: h(6),
-    marginLeft: w(8),
+    minHeight: h(28),
   },
-  badgePending: { borderColor: AMBER },
-  badgePaid: { borderColor: colors.status.success },
   badgeText: { fontSize: f(12), fontWeight: '700' },
-  badgeTextPending: { color: AMBER },
-  badgeTextPaid: { color: colors.status.success },
-  empty: { alignItems: 'center', gap: h(8), paddingVertical: h(26) },
+  alertError: {
+    borderWidth: 1,
+    borderColor: colors.status.danger,
+    backgroundColor: '#FDECEC',
+    borderRadius: w(8),
+    padding: w(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: w(8),
+    marginBottom: h(12),
+  },
+  alertErrorText: { color: colors.status.danger, fontSize: f(13), flex: 1 },
+  retry: {
+    minHeight: h(36),
+    paddingHorizontal: w(12),
+    borderRadius: w(6),
+    borderWidth: 1,
+    borderColor: colors.status.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryText: {
+    color: colors.status.danger,
+    fontSize: f(13),
+    fontWeight: '700',
+  },
+  empty: {
+    alignItems: 'center',
+    gap: h(8),
+    paddingVertical: h(26),
+    paddingHorizontal: w(12),
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#DCDCDC',
+    borderRadius: w(8),
+  },
+  emptyIcon: {
+    width: w(56),
+    height: w(56),
+    borderRadius: w(28),
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   emptyText: { color: colors.textGray, fontSize: f(14) },
   overlay: {
     flex: 1,
