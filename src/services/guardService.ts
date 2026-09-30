@@ -10,26 +10,34 @@ export type DutyPhoto = {
   type?: string | null;
 };
 
-/** Builds the multipart body the duty API expects (`photo` field). */
-const buildDutyPhotoBody = (photo: DutyPhoto) => {
+/** Guard photos accepted by the API: JPG, PNG, or WEBP, max 10 MB each. */
+const toFormDataFile = (photo: DutyPhoto, fallbackName: string) => {
   const uri = /^(file|content|ph):\/\//i.test(photo.uri)
     ? photo.uri
     : `file://${photo.uri.startsWith('/') ? '' : '/'}${photo.uri}`;
 
-  let name = photo.fileName?.trim() || `duty-photo-${Date.now()}.jpg`;
+  let name = photo.fileName?.trim() || fallbackName;
   if (!/\.(jpg|jpeg|png|webp)$/i.test(name)) {
     name = `${name}.jpg`;
   }
 
-  const body = new FormData();
-  body.append('photo', {
+  return {
     uri,
     name,
     type:
       photo.type && photo.type.startsWith('image/') ? photo.type : 'image/jpeg',
-  } as unknown as Blob);
+  } as unknown as Blob;
+};
+
+/** Builds the multipart body the duty API expects (`photo` field). */
+const buildDutyPhotoBody = (photo: DutyPhoto) => {
+  const body = new FormData();
+  body.append('photo', toFormDataFile(photo, `duty-photo-${Date.now()}.jpg`));
   return body;
 };
+
+/** Incidents accept up to five evidence photos per report. */
+export const MAX_REPORT_PHOTOS = 5;
 
 export type GuardDutyDetails = {
   id: number;
@@ -107,19 +115,51 @@ export type GuardSalarySummary = {
   calculated_pay: number;
 };
 
+/**
+ * Reports with attachments use the same multipart contract as the duty photo
+ * endpoints (`photos` field, appended per file). Reports without attachments
+ * keep the plain JSON body.
+ */
+const buildReportBody = (
+  report: { severity: GuardReport['severity']; notes: string },
+  photos: DutyPhoto[],
+) => {
+  const attached = photos.slice(0, MAX_REPORT_PHOTOS);
+  if (!attached.length) return report;
+
+  const body = new FormData();
+  body.append('severity', report.severity);
+  body.append('notes', report.notes);
+  attached.forEach((photo, index) => {
+    body.append(
+      'photos',
+      toFormDataFile(photo, `report-photo-${Date.now()}-${index}.jpg`),
+    );
+  });
+  return body;
+};
+
 export type PatrolCheckpoint = {
   id: number;
   name: string;
   sequence_order: number;
-  scanned: boolean;
-  scanned_at?: string | null;
+  /** Persisted by the backend; the only source of truth for the row state. */
+  visited: boolean;
+  visited_at?: string | null;
 };
 
-export type PatrolRoundState = {
-  round: { id: number; status: 'in_progress' | 'completed' };
-  progress: { scanned: number; total: number; percent: number };
-  next_checkpoint: PatrolCheckpoint | null;
+export type PatrolScanLog = {
+  id: number;
+  checkpoint_id: number;
+  checkpoint_name: string;
+  scanned_at: string;
+};
+
+export type PatrolCheckpointData = {
+  site_id: number;
+  site_name: string | null;
   checkpoints: PatrolCheckpoint[];
+  recent_scans: PatrolScanLog[];
 };
 
 export const guardService = {
@@ -192,16 +232,21 @@ export const guardService = {
         },
       )
     ).data,
-  submitReport: async (body: {
+  submitReport: async (report: {
     severity: GuardReport['severity'];
     notes: string;
+    /** Optional evidence photos captured or picked by the guard. */
+    photos?: DutyPhoto[];
   }) =>
     (
       await apiRequest<{ success: boolean; data: GuardReport }>(
         '/guard/reports',
         {
           method: 'POST',
-          body,
+          body: buildReportBody(
+            { severity: report.severity, notes: report.notes },
+            report.photos ?? [],
+          ),
           authenticated: true,
         },
       )
@@ -215,37 +260,24 @@ export const guardService = {
         },
       )
     ).data,
-  getActivePatrolRound: async () =>
-    (
-      await apiRequest<{ success: boolean; data: PatrolRoundState | null }>(
-        '/guard/patrol/rounds/active',
-        { authenticated: true },
-      )
-    ).data,
   getPatrolCheckpoints: async () =>
     (
       await apiRequest<{
         success: boolean;
-        data: {
-          site_id: number;
-          site_name: string;
-          checkpoints: PatrolCheckpoint[];
-        };
+        data: PatrolCheckpointData;
       }>('/guard/patrol/checkpoints', { authenticated: true })
-    ).data,
-  startPatrolRound: async () =>
-    (
-      await apiRequest<{
-        success: boolean;
-        data: { id: number; checkpoints: PatrolCheckpoint[] };
-      }>('/guard/patrol/rounds/start', { method: 'POST', authenticated: true })
     ).data,
   scanPatrolCheckpoint: async (id: number) =>
     (
       await apiRequest<{
         success: boolean;
         data: {
-          progress: PatrolRoundState['progress'];
+          scan: {
+            id: number;
+            checkpoint_id: number;
+            scanned_at: string;
+          };
+          progress: { scanned: number; total: number; percent: number };
           round_completed: boolean;
         };
       }>(`/guard/patrol/checkpoints/${id}/scan`, {

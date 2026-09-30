@@ -74,9 +74,7 @@ const GuardProfileScreen: React.FC<Props> = ({ navigation }) => {
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'report') navigation.navigate('GuardReport');
     else if (tab === 'patrol') navigation.navigate('GuardPatrol');
-    else if (tab !== 'profile') {
-      Alert.alert(t('guard.tabs.schedule'), t('guard.common.featureSoon'));
-    }
+    else if (tab === 'schedule') navigation.navigate('GuardSchedule');
   };
 
   const initial = (profile?.full_name || 'G').trim().charAt(0).toUpperCase();

@@ -139,8 +139,8 @@ const GuardDutyScreen = () => {
       navigation.navigate('GuardProfile');
       return;
     }
-    if (tab !== 'duty') {
-      showUnavailable(t('guard.tabs.schedule'));
+    if (tab === 'schedule') {
+      navigation.navigate('GuardSchedule');
     }
   };
 

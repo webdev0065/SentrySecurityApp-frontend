@@ -48,6 +48,15 @@ export type AgencyGuard = {
   age?: number | null;
   gender?: 'male' | 'female' | 'other' | null;
 };
+export type AgencyCheckpoint = {
+  id: number;
+  site_id: number;
+  name: string;
+  sequence_order: number;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  is_active?: boolean;
+};
 export type AgencyCoverageRequest = {
   id: number;
   event_name: string;
@@ -61,6 +70,7 @@ export type AgencyCoverageRequest = {
   status: 'pending' | 'approved' | 'rejected' | 'assigned' | 'completed';
   assigned_guard_ids?: number[] | null;
   created_at: string;
+  checkpoints?: Array<{ id: number; name: string; sequence_order: number }>;
 };
 type ApiList<T> = { success: boolean; data: T[] };
 
@@ -157,4 +167,26 @@ export const agencyApiService = {
         { method: 'PATCH', body: { status }, authenticated: true },
       )
     ).data,
+  getSiteCheckpoints: async (siteId: number) =>
+    (
+      await apiRequest<ApiList<AgencyCheckpoint>>(
+        `/agency/sites/${siteId}/checkpoints`,
+        { authenticated: true },
+      )
+    ).data,
+  createSiteCheckpoint: async (
+    siteId: number,
+    body: { name: string; sequenceOrder?: number },
+  ) =>
+    (
+      await apiRequest<{ success: boolean; data: AgencyCheckpoint }>(
+        `/agency/sites/${siteId}/checkpoints`,
+        { method: 'POST', body, authenticated: true },
+      )
+    ).data,
+  deleteSiteCheckpoint: async (siteId: number, checkpointId: number) =>
+    apiRequest<{ success: boolean; message: string }>(
+      `/agency/sites/${siteId}/checkpoints/${checkpointId}`,
+      { method: 'DELETE', authenticated: true },
+    ),
 };

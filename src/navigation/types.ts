@@ -41,6 +41,7 @@ export type GuardSectionKey =
 
 export type GuardStackParamList = {
   GuardDuty: undefined;
+  GuardSchedule: undefined;
   GuardDutyCapture: { mode: 'clock_in' | 'clock_out' };
   GuardReport: undefined;
   GuardPatrol: undefined;

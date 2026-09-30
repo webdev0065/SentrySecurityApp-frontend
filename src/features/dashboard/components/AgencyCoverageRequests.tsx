@@ -250,6 +250,22 @@ export default function AgencyCoverageRequests({
                     label={t('coverageManagement.status')}
                     value={t(`coverageManagement.statuses.${selected.status}`)}
                   />
+                  {(selected.checkpoints?.length ?? 0) > 0 ? (
+                    <View style={styles.guardSection}>
+                      <Text style={styles.sectionTitle}>
+                        {t('coverageManagement.checkpointsTitle')}
+                      </Text>
+                      <Text style={styles.muted}>
+                        {t('coverageManagement.checkpointsHint')}
+                      </Text>
+                      {(selected.checkpoints ?? []).map((point, index) => (
+                        <View key={point.id ?? `${point.name}-${index}`} style={styles.checkpointRow}>
+                          <Text style={styles.checkpointSeq}>{point.sequence_order ?? index + 1}</Text>
+                          <Text style={styles.checkpointName}>{point.name}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
 
                   {selected.status === 'approved' ? (
                     <View style={styles.guardSection}>
@@ -534,6 +550,34 @@ const styles = StyleSheet.create({
     fontSize: scaleFont(typography.sizes.md),
     fontWeight: typography.weights.bold,
   },
+  checkpointRow: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  checkpointSeq: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    backgroundColor: colors.light.background,
+    color: colors.primary,
+    fontSize: scaleFont(typography.sizes.xs),
+    fontWeight: typography.weights.semiBold,
+    overflow: 'hidden',
+  },
+  checkpointName: {
+    flex: 1,
+    color: colors.primary,
+    fontSize: scaleFont(typography.sizes.sm),
+    fontWeight: typography.weights.medium,
+  },
+  guardRowActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.light.background,
+  },
   guardRow: {
     minHeight: 56,
     flexDirection: 'row',
@@ -543,10 +587,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: spacing.sm,
     padding: spacing.sm,
-  },
-  guardRowActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.light.background,
   },
   checkbox: {
     width: 24,

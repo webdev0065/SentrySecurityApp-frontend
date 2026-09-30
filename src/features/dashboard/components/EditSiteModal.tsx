@@ -19,6 +19,7 @@ import {
 import { colors } from '../../../styles/colors';
 import { scaleFont, scaleHeight, scaleWidth } from '../../../styles/dimensions';
 import ScalePressable from '../../../components/common/ScalePressable';
+import SiteCheckpointsSection from './SiteCheckpointsSection';
 
 type Props = {
   visible: boolean;
@@ -222,6 +223,7 @@ const EditSiteModal: React.FC<Props> = ({
               />
               <Text style={s.outlineText}>{t('dashboard.getDirections')}</Text>
             </ScalePressable>
+            <SiteCheckpointsSection siteId={site.id} />
             <ScalePressable
               style={s.save}
               onPress={save}

@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
+  Linking,
+  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -23,9 +26,16 @@ import GuardBottomNavigation, {
 } from '../components/GuardBottomNavigation';
 import {
   guardService,
+  MAX_REPORT_PHOTOS,
+  type DutyPhoto,
   type GuardDutyDetails,
   type GuardReport,
 } from '../../../services/guardService';
+import {
+  captureGuardEvidencePhoto,
+  pickGuardEvidencePhotos,
+  type GuardPhotoPickResult,
+} from '../utils/guardPhotoPicker';
 import type { GuardStackParamList } from '../../../navigation/types';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../../styles/colors';
@@ -48,6 +58,13 @@ const GuardReportScreen = () => {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [photos, setPhotos] = useState<DutyPhoto[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerBusy, setPickerBusy] = useState(false);
+  const [photoNotice, setPhotoNotice] = useState<{
+    message: string;
+    openSettings?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     guardService
@@ -55,6 +72,81 @@ const GuardReportScreen = () => {
       .then(setGuard)
       .catch(() => undefined);
   }, []);
+
+  const remainingSlots = MAX_REPORT_PHOTOS - photos.length;
+  const attachmentsFull = remainingSlots <= 0;
+
+  const applyPickResult = useCallback(
+    (result: GuardPhotoPickResult) => {
+      if (result.status === 'success') {
+        setPhotoNotice(null);
+        setPhotos(current =>
+          [...current, ...result.photos].slice(0, MAX_REPORT_PHOTOS),
+        );
+        return;
+      }
+      // Cancelling the camera or gallery is not an error state.
+      if (result.status === 'cancelled') return;
+
+      if (result.status === 'permission') {
+        setPhotoNotice({
+          message: t('guard.report.cameraPermissionBody'),
+          openSettings: true,
+        });
+        return;
+      }
+      if (result.status === 'unavailable') {
+        setPhotoNotice({ message: t('guard.report.cameraUnavailableHint') });
+        return;
+      }
+      setPhotoNotice({
+        message: result.message || t('guard.report.photoPickerFailed'),
+      });
+    },
+    [t],
+  );
+
+  const attachFromCamera = async () => {
+    if (pickerBusy || attachmentsFull) return;
+    // The sheet closes first so the system camera is never covered by it.
+    setPickerOpen(false);
+    setPickerBusy(true);
+    try {
+      applyPickResult(
+        await captureGuardEvidencePhoto(
+          {
+            title: t('guard.report.cameraPermissionTitle'),
+            message: t('guard.report.cameraPermissionBody'),
+            buttonPositive: t('guard.report.grantCamera'),
+            buttonNegative: t('guard.common.close'),
+          },
+          t('guard.report.captureFailed'),
+        ),
+      );
+    } finally {
+      setPickerBusy(false);
+    }
+  };
+
+  const attachFromGallery = async () => {
+    if (pickerBusy || attachmentsFull) return;
+    setPickerOpen(false);
+    setPickerBusy(true);
+    try {
+      applyPickResult(
+        await pickGuardEvidencePhotos(
+          remainingSlots,
+          t('guard.report.photoPickerFailed'),
+        ),
+      );
+    } finally {
+      setPickerBusy(false);
+    }
+  };
+
+  const removePhoto = (index: number) =>
+    setPhotos(current => current.filter((_, position) => position !== index));
+
   const submit = async () => {
     if (!notes.trim()) {
       Alert.alert(
@@ -65,9 +157,15 @@ const GuardReportScreen = () => {
     }
     try {
       setSubmitting(true);
-      await guardService.submitReport({ severity, notes: notes.trim() });
+      await guardService.submitReport({
+        severity,
+        notes: notes.trim(),
+        photos,
+      });
       setNotes('');
       setSeverity('low');
+      setPhotos([]);
+      setPhotoNotice(null);
       Alert.alert(
         t('guard.report.submittedTitle'),
         t('guard.report.submittedBody'),
@@ -86,11 +184,9 @@ const GuardReportScreen = () => {
     if (tab === 'duty') navigation.navigate('GuardDuty');
     else if (tab === 'patrol') navigation.navigate('GuardPatrol');
     else if (tab === 'profile') navigation.navigate('GuardProfile');
-    else if (tab !== 'report') {
-      Alert.alert(t('guard.tabs.schedule'), t('guard.common.featureSoon'));
-    }
+    else if (tab === 'schedule') navigation.navigate('GuardSchedule');
   };
-  const submitDisabled = submitting || !notes.trim();
+  const submitDisabled = submitting || pickerBusy || !notes.trim();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -155,13 +251,17 @@ const GuardReportScreen = () => {
 
           <Text style={styles.label}>{t('guard.report.attachments')}</Text>
           <ScalePressable
-            style={styles.attach}
-            onPress={() =>
-              Alert.alert(
-                t('guard.report.photoTitle'),
-                t('guard.report.photoBody'),
-              )
-            }
+            style={[
+              styles.attach,
+              (pickerBusy || attachmentsFull || submitting) &&
+                styles.attachDisabled,
+            ]}
+            onPress={() => setPickerOpen(true)}
+            disabled={pickerBusy || attachmentsFull || submitting}
+            accessibilityRole="button"
+            accessibilityState={{
+              disabled: pickerBusy || attachmentsFull || submitting,
+            }}
             accessibilityLabel={t('guard.report.attachPhoto')}
           >
             <Feather
@@ -170,9 +270,72 @@ const GuardReportScreen = () => {
               color={colors.textGray}
             />
             <Text style={styles.attachText}>
-              {t('guard.report.attachPhoto')}
+              {pickerBusy
+                ? t('guard.report.opening')
+                : t('guard.report.attachPhoto')}
             </Text>
           </ScalePressable>
+          <Text style={styles.attachHint}>
+            {attachmentsFull
+              ? t('guard.report.photoLimitReached', {
+                  count: MAX_REPORT_PHOTOS,
+                })
+              : t('guard.report.attachmentsHint', {
+                  count: MAX_REPORT_PHOTOS,
+                })}
+          </Text>
+
+          {photos.length ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.photoRow}
+            >
+              {photos.map((photo, index) => (
+                <View key={`${photo.uri}-${index}`} style={styles.photoItem}>
+                  <Image source={{ uri: photo.uri }} style={styles.photoThumb} />
+                  <ScalePressable
+                    style={styles.photoRemove}
+                    onPress={() => removePhoto(index)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('guard.report.removePhoto', {
+                      index: index + 1,
+                    })}
+                  >
+                    <Feather
+                      name="x"
+                      size={scaleFont(14)}
+                      color={colors.white}
+                    />
+                  </ScalePressable>
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+
+          {photoNotice ? (
+            <View style={styles.notice}>
+              <Feather
+                name="alert-circle"
+                size={scaleFont(16)}
+                color={colors.status.danger}
+              />
+              <Text style={styles.noticeText}>{photoNotice.message}</Text>
+              {photoNotice.openSettings ? (
+                <ScalePressable
+                  style={styles.noticeAction}
+                  onPress={() => Linking.openSettings()}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('guard.report.openSettings')}
+                >
+                  <Text style={styles.noticeActionText}>
+                    {t('guard.report.openSettings')}
+                  </Text>
+                </ScalePressable>
+              ) : null}
+            </View>
+          ) : null}
 
           <ScalePressable
             style={[styles.submit, submitDisabled && styles.submitDisabled]}
@@ -214,6 +377,82 @@ const GuardReportScreen = () => {
           onLogout={() => setProfileMenuOpen(false)}
         />
       ) : null}
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setPickerOpen(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <ScalePressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setPickerOpen(false)}
+            accessibilityLabel={t('guard.report.cancel')}
+          >
+            <View />
+          </ScalePressable>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>
+              {t('guard.report.addPhotoTitle')}
+            </Text>
+            <ScalePressable
+              style={styles.sheetRow}
+              onPress={attachFromCamera}
+              accessibilityRole="button"
+              accessibilityLabel={t('guard.report.takePhoto')}
+            >
+              <View style={styles.sheetIcon}>
+                <Feather
+                  name="camera"
+                  size={scaleFont(18)}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={styles.sheetRowText}>
+                {t('guard.report.takePhoto')}
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={scaleFont(18)}
+                color={colors.textGray}
+              />
+            </ScalePressable>
+            <ScalePressable
+              style={styles.sheetRow}
+              onPress={attachFromGallery}
+              accessibilityRole="button"
+              accessibilityLabel={t('guard.report.chooseFromGallery')}
+            >
+              <View style={styles.sheetIcon}>
+                <Feather
+                  name="image"
+                  size={scaleFont(18)}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={styles.sheetRowText}>
+                {t('guard.report.chooseFromGallery')}
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={scaleFont(18)}
+                color={colors.textGray}
+              />
+            </ScalePressable>
+            <ScalePressable
+              style={styles.sheetCancel}
+              onPress={() => setPickerOpen(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t('guard.report.cancel')}
+            >
+              <Text style={styles.sheetCancelText}>
+                {t('guard.report.cancel')}
+              </Text>
+            </ScalePressable>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -236,7 +475,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontFamily: typography.fontFamily,
     fontSize: scaleFont(typography.sizes.sm),
-    fontWeight: typography.weights.semiBold,
+    fontWeight: typography.weights.medium,
+    lineHeight: scaleFont(typography.sizes.md + 4),
   },
   severityRow: {
     flexDirection: 'row',
@@ -275,8 +515,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     color: colors.primary,
     fontFamily: typography.fontFamily,
-    fontSize: scaleFont(typography.sizes.sm),
-    lineHeight: scaleFont(typography.sizes.md + 4),
+    fontSize: scaleFont(typography.sizes.md),
+    fontWeight: typography.weights.medium,
+    lineHeight: scaleFont(typography.sizes.lg + 4),
   },
   attach: {
     minHeight: scaleHeight(48),
@@ -293,7 +534,135 @@ const styles = StyleSheet.create({
   attachText: {
     color: colors.primary,
     fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.md),
+    fontWeight: typography.weights.semiBold,
+    lineHeight: scaleFont(typography.sizes.lg + 2),
+  },
+  attachDisabled: { opacity: 0.5 },
+  attachHint: {
+    marginTop: spacing.xs,
+    color: colors.textGray,
+    fontFamily: typography.fontFamily,
     fontSize: scaleFont(typography.sizes.sm),
+    lineHeight: scaleFont(typography.sizes.md + 2),
+  },
+  photoRow: {
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  photoItem: {
+    height: scaleWidth(84),
+    width: scaleWidth(84),
+  },
+  photoThumb: {
+    height: '100%',
+    width: '100%',
+    borderRadius: scaleWidth(10),
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+  },
+  photoRemove: {
+    position: 'absolute',
+    top: -spacing.xs,
+    right: -spacing.xs,
+    height: scaleWidth(24),
+    width: scaleWidth(24),
+    borderRadius: scaleWidth(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.status.danger,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  notice: {
+    marginTop: spacing.xs,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: scaleWidth(10),
+    borderWidth: 1,
+    borderColor: colors.status.danger,
+    backgroundColor: colors.white,
+  },
+  noticeText: {
+    flex: 1,
+    color: colors.status.danger,
+    fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.sm),
+    lineHeight: scaleFont(typography.sizes.md + 2),
+  },
+  noticeAction: {
+    minHeight: scaleHeight(34),
+    paddingHorizontal: spacing.md,
+    borderRadius: scaleWidth(8),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+  },
+  noticeActionText: {
+    color: colors.white,
+    fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.sm),
+    fontWeight: typography.weights.semiBold,
+  },
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(11, 31, 58, 0.56)',
+  },
+  sheet: {
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
+    gap: spacing.sm,
+    borderTopLeftRadius: spacing.lg,
+    borderTopRightRadius: spacing.lg,
+    backgroundColor: colors.white,
+  },
+  sheetTitle: {
+    marginBottom: spacing.xs,
+    color: colors.primary,
+    fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.md),
+    fontWeight: typography.weights.semiBold,
+  },
+  sheetRow: {
+    minHeight: scaleHeight(56),
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: scaleWidth(10),
+    backgroundColor: colors.light.background,
+  },
+  sheetIcon: {
+    height: scaleWidth(36),
+    width: scaleWidth(36),
+    borderRadius: scaleWidth(18),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+  },
+  sheetRowText: {
+    flex: 1,
+    color: colors.primary,
+    fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.md),
+    fontWeight: typography.weights.medium,
+  },
+  sheetCancel: {
+    minHeight: scaleHeight(48),
+    marginTop: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetCancelText: {
+    color: colors.textGray,
+    fontFamily: typography.fontFamily,
+    fontSize: scaleFont(typography.sizes.md),
     fontWeight: typography.weights.semiBold,
   },
   submit: {
@@ -314,7 +683,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: scaleFont(typography.sizes.md),
     fontWeight: typography.weights.semiBold,
-    letterSpacing: scaleFont(0.4),
+    lineHeight: scaleFont(typography.sizes.lg + 2),
   },
   backdrop: { ...StyleSheet.absoluteFill, zIndex: 10 },
 });

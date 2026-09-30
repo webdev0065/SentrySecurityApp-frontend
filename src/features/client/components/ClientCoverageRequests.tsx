@@ -29,6 +29,7 @@ import { typography } from '../../../styles/typography';
 import { scaleFont } from '../../../styles/dimensions';
 
 type Picker = 'state' | 'district' | 'city' | null;
+type CheckpointResolution = { checkpoints: string[] } | { error: string };
 const emptyForm = {
   eventName: '',
   state: '',
@@ -60,6 +61,10 @@ export default function ClientCoverageRequests() {
     useState<PublicAgencyDetails | null>(null);
   const [agencyDetailsOpen, setAgencyDetailsOpen] = useState(false);
   const [agencyDetailsLoading, setAgencyDetailsLoading] = useState(false);
+  const [checkpoints, setCheckpoints] = useState<string[]>([]);
+  const [checkpointDraft, setCheckpointDraft] = useState('');
+  const [checkpointError, setCheckpointError] = useState('');
+  const [expandedRequestId, setExpandedRequestId] = useState<number | null>(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
@@ -213,6 +218,14 @@ export default function ClientCoverageRequests() {
       setError(t('coverageRequest.required'));
       return;
     }
+    // A checkpoint typed but not yet added is still the client's intent, so
+    // resolve it here instead of blocking the send.
+    const resolved = resolveCheckpointDraft();
+    if ('error' in resolved) {
+      setCheckpointError(resolved.error);
+      return;
+    }
+    const requestedCheckpoints = resolved.checkpoints;
     setSaving(true);
     setError('');
     try {
@@ -223,10 +236,16 @@ export default function ClientCoverageRequests() {
         notes: form.notes.trim(),
         guardsNeeded,
         ...(selectedAgencyId ? { agencyId: selectedAgencyId } : {}),
+        ...(requestedCheckpoints.length
+          ? { checkpoints: requestedCheckpoints.map(name => ({ name })) }
+          : {}),
       });
       setForm(emptyForm);
       setGuardsNeeded(1);
       setSelectedAgencyId(null);
+      setCheckpoints([]);
+      setCheckpointDraft('');
+      setCheckpointError('');
       await loadRequests();
       Alert.alert(
         t('coverageRequest.sentTitle'),
@@ -241,6 +260,38 @@ export default function ClientCoverageRequests() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const resolveCheckpointDraft = (): CheckpointResolution => {
+    const name = checkpointDraft.trim();
+    if (!name) return { checkpoints };
+    if (checkpoints.some(item => item.toLowerCase() === name.toLowerCase())) {
+      return { error: t('coverageRequest.checkpointDuplicate') };
+    }
+    if (checkpoints.length >= 20) {
+      return { error: t('coverageRequest.checkpointLimit') };
+    }
+    return { checkpoints: [...checkpoints, name] };
+  };
+
+  const addCheckpoint = () => {
+    if (!checkpointDraft.trim()) {
+      setCheckpointError(t('coverageRequest.checkpointNameRequired'));
+      return;
+    }
+    const resolved = resolveCheckpointDraft();
+    if ('error' in resolved) {
+      setCheckpointError(resolved.error);
+      return;
+    }
+    setCheckpoints(resolved.checkpoints);
+    setCheckpointDraft('');
+    setCheckpointError('');
+  };
+
+  const removeCheckpoint = (index: number) => {
+    setCheckpoints(current => current.filter((_, item) => item !== index));
+    setCheckpointError('');
   };
 
   return (
@@ -373,6 +424,31 @@ export default function ClientCoverageRequests() {
           placeholder={t('coverageRequest.notesPlaceholder')}
           multiline
         />
+        <View style={s.field}>
+          <Text style={s.label}>{t('coverageRequest.checkpointsTitle')}</Text>
+          <Text style={s.muted}>{t('coverageRequest.checkpointsHint')}</Text>
+          {checkpoints.map((name, index) => (
+            <View key={`${name}-${index}`} style={s.checkpointRow}>
+              <View style={s.checkpointSeq}>
+                <Text style={s.checkpointSeqText}>{index + 1}</Text>
+              </View>
+              <Text style={s.checkpointName} numberOfLines={1}>{name}</Text>
+              <ScalePressable style={s.checkpointRemove} onPress={() => removeCheckpoint(index)} accessibilityRole="button" accessibilityLabel={t('coverageRequest.removeCheckpoint')}>
+                <Feather name="trash-2" size={scaleFont(18)} color={colors.status.danger} />
+              </ScalePressable>
+            </View>
+          ))}
+          <View style={s.checkpointAddRow}>
+            <TextInput style={[s.input, s.checkpointInput]} value={checkpointDraft} onChangeText={value => { setCheckpointDraft(value); if (checkpointError) setCheckpointError(''); }} placeholder={t('coverageRequest.checkpointPlaceholder')} placeholderTextColor={colors.textGray} maxLength={80} editable={!saving} onSubmitEditing={addCheckpoint} returnKeyType="done" />
+            <ScalePressable style={s.checkpointAdd} onPress={addCheckpoint} disabled={saving} accessibilityRole="button" accessibilityLabel={t('coverageRequest.addCheckpoint')}>
+              <Feather name="plus" size={scaleFont(20)} color={colors.white} />
+            </ScalePressable>
+          </View>
+          {checkpointError ? <Text style={s.error}>{checkpointError}</Text> : null}
+          {checkpoints.length >= 20 ? (
+            <Text style={s.muted}>{t('coverageRequest.checkpointLimit')}</Text>
+          ) : null}
+        </View>
         {error ? <Text style={s.error}>{error}</Text> : null}
         <ScalePressable
           style={s.submit}
@@ -406,6 +482,25 @@ export default function ClientCoverageRequests() {
               <Text style={s.muted}>
                 {new Date(request.created_at).toLocaleDateString(i18n.language)}
               </Text>
+              {(request.checkpoints?.length ?? 0) > 0 ? (
+                <View style={s.requestCheckpoints}>
+                  <ScalePressable style={s.requestCheckpointToggle} onPress={() => setExpandedRequestId(current => (current === request.id ? null : request.id))} accessibilityRole="button">
+                    <Feather name="map-pin" size={scaleFont(16)} color={colors.primary} />
+                    <Text style={s.requestCheckpointTitle}>{t('coverageRequest.checkpointsCount', { count: request.checkpoints?.length ?? 0 })}</Text>
+                    <Feather name={expandedRequestId === request.id ? 'chevron-up' : 'chevron-down'} size={scaleFont(18)} color={colors.primary} />
+                  </ScalePressable>
+                  {expandedRequestId === request.id ? (
+                    <View style={s.requestCheckpointList}>
+                      {(request.checkpoints ?? []).map((point, index) => (
+                        <View key={point.id ?? `${point.name}-${index}`} style={s.requestCheckpointRow}>
+                          <Text style={s.requestCheckpointSeq}>{point.sequence_order ?? index + 1}</Text>
+                          <Text style={s.requestCheckpointName}>{point.name}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
             </View>
           ))
         )}
@@ -691,6 +786,21 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   notes: { minHeight: 130, paddingTop: spacing.md },
+  checkpointRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: spacing.sm, backgroundColor: colors.white },
+  checkpointSeq: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.light.background, borderWidth: 1, borderColor: colors.border },
+  checkpointSeqText: { color: colors.primary, fontSize: scaleFont(typography.sizes.xs), fontWeight: typography.weights.semiBold },
+  checkpointName: { flex: 1, color: colors.primary, fontSize: scaleFont(typography.sizes.md) },
+  checkpointRemove: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  checkpointAddRow: { flexDirection: 'row', gap: spacing.sm },
+  checkpointInput: { flex: 1 },
+  checkpointAdd: { width: 50, minHeight: 50, borderRadius: spacing.sm, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  requestCheckpoints: { marginTop: spacing.xs, gap: spacing.xs },
+  requestCheckpointToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  requestCheckpointTitle: { flex: 1, color: colors.primary, fontSize: scaleFont(typography.sizes.sm), fontWeight: typography.weights.semiBold },
+  requestCheckpointList: { gap: spacing.xs, paddingLeft: spacing.sm },
+  requestCheckpointRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  requestCheckpointSeq: { width: 22, height: 22, borderRadius: 11, textAlign: 'center', textAlignVertical: 'center', backgroundColor: colors.light.background, color: colors.primary, fontSize: scaleFont(typography.sizes.xs), fontWeight: typography.weights.semiBold, overflow: 'hidden' },
+  requestCheckpointName: { flex: 1, color: colors.primary, fontSize: scaleFont(typography.sizes.sm) },
   agenciesSection: { gap: spacing.sm },
   agencyCard: {
     minHeight: 64,

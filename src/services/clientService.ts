@@ -27,6 +27,15 @@ export type UpdateClientDetailsInput = {
   mobileNumber?: string;
 };
 
+export type CoverageRequestCheckpointInput = { name: string };
+
+export type CoverageRequestCheckpoint = {
+  id: number;
+  coverage_request_id: number;
+  name: string;
+  sequence_order: number;
+};
+
 export type CoverageRequest = {
   id: number;
   event_name: string;
@@ -43,6 +52,7 @@ export type CoverageRequest = {
   agency_name?: string | null;
   agency_city?: string | null;
   agency_district?: string | null;
+  checkpoints?: CoverageRequestCheckpoint[];
 };
 
 export type CoverageRequestInput = {
@@ -54,6 +64,7 @@ export type CoverageRequestInput = {
   guardsNeeded: number;
   notes: string;
   agencyId?: number;
+  checkpoints?: CoverageRequestCheckpointInput[];
 };
 
 export type AvailableAgency = {
