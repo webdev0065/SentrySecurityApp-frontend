@@ -112,6 +112,10 @@ const hi = {
       assignGuards: 'गार्ड नियुक्त करें',
       assignLimit: 'अधिकतम {{count}} उपलब्ध गार्ड चुनें।',
       selectGuardFirst: 'कम से कम एक उपलब्ध गार्ड चुनें।',
+      siteCapacity: '{{assigned}} में से {{total}} गार्ड नियुक्त',
+      siteFull: 'साइट पूरी क्षमता पर है',
+      assignedTo: 'नियुक्त · {{site}}',
+      alreadyOnSite: 'इस साइट पर पहले से नियुक्त',
       noAvailableGuards: 'अभी कोई ऑफ-ड्यूटी गार्ड उपलब्ध नहीं है।',
       approve: 'स्वीकार करें',
       reject: 'अस्वीकार करें',
@@ -130,6 +134,14 @@ const hi = {
         completed: 'पूर्ण',
       },
     },
+    assignmentErrors: {
+      GUARD_ALREADY_ASSIGNED:
+        'यह गार्ड पहले से किसी अन्य सक्रिय साइट पर नियुक्त है। यहाँ नियुक्ति से पहले वह नियुक्ति समाप्त करें।',
+      DUPLICATE_ASSIGNMENT: 'यह गार्ड इस साइट पर पहले से नियुक्त है।',
+      SITE_CAPACITY_REACHED: 'इस साइट की गार्ड क्षमता पूरी हो चुकी है।',
+      APPROVAL_REQUIRED: 'गार्ड नियुक्त करने से पहले इस अनुरोध को स्वीकृत करें।',
+      fallback: 'नियुक्ति पूरी नहीं हो सकी। कृपया पुनः प्रयास करें।',
+    },
     addGuardForm: {
       title: 'गार्ड जोड़ें',
       fullName: 'पूरा नाम',
@@ -145,6 +157,11 @@ const hi = {
       other: 'अन्य',
       site: 'प्रारंभिक साइट आवंटन',
       unassigned: 'आवंटित नहीं',
+      endAssignmentFirst: 'पहले वर्तमान नियुक्ति समाप्त करें',
+      siteUsage: '{{assigned}}/{{total}}',
+      siteFull: 'पूर्ण',
+      assignedElsewhereHint:
+        'इस गार्ड की एक सक्रिय साइट नियुक्ति है। पहले “अनावंटित” चुनकर सहेजें, फिर नई साइट चुनें।',
       loadingSites: 'साइट लोड हो रही हैं…',
       siteError:
         'साइट लोड नहीं हुईं। बिना साइट के गार्ड जोड़ें या फ़ॉर्म दोबारा खोलें।',
@@ -662,6 +679,7 @@ const hi = {
       tapSiteManage: 'साइट्स टैब में प्रबंधित करने के लिए साइट पर टैप करें',
       active: 'सक्रिय',
       guardCount: '{{count}} गार्ड',
+      guardCountOf: '{{count}} / {{total}} गार्ड',
       agencyAdmin: 'एजेंसी एडमिन',
       accountDetails: 'खाता विवरण',
       yourAccount: 'आपका खाता',

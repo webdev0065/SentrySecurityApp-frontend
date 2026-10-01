@@ -158,7 +158,12 @@ const SiteCard: React.FC<{
       </View>
       <View style={s.details}>
         <Text style={s.detail}>
-          {t('dashboard.guardCount', { count: guardCount })}
+          {site.guard_capacity != null
+            ? t('dashboard.guardCountOf', {
+                count: guardCount,
+                total: site.guard_capacity,
+              })
+            : t('dashboard.guardCount', { count: guardCount })}
         </Text>
         <Text style={s.detail}>{plan}</Text>
       </View>

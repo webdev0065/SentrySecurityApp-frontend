@@ -10,6 +10,11 @@ export type AgencySite = {
   start_time?: string;
   end_time?: string;
   source_coverage_request_id?: number | null;
+  /**
+   * Guard capacity from the linked coverage request (`guards_needed`).
+   * Null when the site has no linked request, meaning unlimited.
+   */
+  guard_capacity?: number | null;
   latitude?: number | null;
   longitude?: number | null;
 };

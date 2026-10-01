@@ -3,11 +3,14 @@ import { session } from './session';
 
 export class ApiError extends Error {
   status?: number;
+  /** Machine-readable business error code (e.g. SITE_CAPACITY_REACHED). */
+  code?: string;
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -40,6 +43,7 @@ export async function apiRequest<T>(
         payload.message ||
         'Something went wrong. Please try again.',
       response.status,
+      typeof payload.code === 'string' ? payload.code : undefined,
     );
   }
   return payload as T;

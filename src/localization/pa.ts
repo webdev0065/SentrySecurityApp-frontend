@@ -110,6 +110,10 @@ const pa = {
       assignGuards: 'ਗਾਰਡ ਨਿਯੁਕਤ ਕਰੋ',
       assignLimit: 'ਵੱਧ ਤੋਂ ਵੱਧ {{count}} ਉਪਲਬਧ ਗਾਰਡ ਚੁਣੋ।',
       selectGuardFirst: 'ਘੱਟੋ-ਘੱਟ ਇੱਕ ਉਪਲਬਧ ਗਾਰਡ ਚੁਣੋ।',
+      siteCapacity: '{{assigned}} ਵਿੱਚੋਂ {{total}} ਗਾਰਡ ਨਿਯੁਕਤ',
+      siteFull: 'ਸਾਈਟ ਪੂਰੀ ਸਮਰੱਥਾ ਉੱਤੇ ਹੈ',
+      assignedTo: 'ਨਿਯੁਕਤ · {{site}}',
+      alreadyOnSite: 'ਇਸ ਸਾਈਟ ਉੱਤੇ ਪਹਿਲਾਂ ਤੋਂ ਨਿਯੁਕਤ',
       noAvailableGuards: 'ਇਸ ਵੇਲੇ ਕੋਈ ਆਫ-ਡਿਊਟੀ ਗਾਰਡ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।',
       approve: 'ਮਨਜ਼ੂਰ ਕਰੋ',
       reject: 'ਰੱਦ ਕਰੋ',
@@ -128,6 +132,14 @@ const pa = {
         completed: 'ਪੂਰਾ',
       },
     },
+    assignmentErrors: {
+      GUARD_ALREADY_ASSIGNED:
+        'ਇਹ ਗਾਰਡ ਪਹਿਲਾਂ ਤੋਂ ਕਿਸੇ ਹੋਰ ਸਰਗਰਮ ਸਾਈਟ ਉੱਤੇ ਨਿਯੁਕਤ ਹੈ। ਇੱਥੇ ਨਿਯੁਕਤੀ ਤੋਂ ਪਹਿਲਾਂ ਉਹ ਨਿਯੁਕਤੀ ਖ਼ਤਮ ਕਰੋ।',
+      DUPLICATE_ASSIGNMENT: 'ਇਹ ਗਾਰਡ ਇਸ ਸਾਈਟ ਉੱਤੇ ਪਹਿਲਾਂ ਤੋਂ ਨਿਯੁਕਤ ਹੈ।',
+      SITE_CAPACITY_REACHED: 'ਸਾਈਟ ਦੀ ਗਾਰਡ ਸਮਰੱਥਾ ਪੂਰੀ ਹੋ ਗਈ ਹੈ।',
+      APPROVAL_REQUIRED: 'ਗਾਰਡ ਨਿਯੁਕਤ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਇਹ ਬੇਨਤੀ ਮਨਜ਼ੂਰ ਕਰੋ।',
+      fallback: 'ਨਿਯੁਕਤੀ ਪੂਰੀ ਨਹੀਂ ਹੋ ਸਕੀ। ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+    },
     addGuardForm: {
       title: 'ਗਾਰਡ ਜੋੜੋ',
       fullName: 'ਪੂਰਾ ਨਾਮ',
@@ -143,6 +155,11 @@ const pa = {
       other: 'ਹੋਰ',
       site: 'ਸ਼ੁਰੂਆਤੀ ਸਾਈਟ ਨਿਯੁਕਤੀ',
       unassigned: 'ਅਣਨਿਯੁਕਤ',
+      endAssignmentFirst: 'ਪਹਿਲਾਂ ਮੌਜੂਦਾ ਨਿਯੁਕਤੀ ਖ਼ਤਮ ਕਰੋ',
+      siteUsage: '{{assigned}}/{{total}}',
+      siteFull: 'ਪੂਰਾ',
+      assignedElsewhereHint:
+        'ਇਸ ਗਾਰਡ ਦੀ ਇੱਕ ਸਰਗਰਮ ਸਾਈਟ ਨਿਯੁਕਤੀ ਹੈ। ਪਹਿਲਾਂ “ਅਣਵੰਡਿਤ” ਚੁਣ ਕੇ ਸੰਭਾਲੋ, ਫਿਰ ਨਵੀਂ ਸਾਈਟ ਚੁਣੋ।',
       loadingSites: 'ਸਾਈਟਾਂ ਲੋਡ ਹੋ ਰਹੀਆਂ ਹਨ…',
       siteError:
         'ਸਾਈਟਾਂ ਲੋਡ ਨਹੀਂ ਹੋਈਆਂ। ਬਿਨਾਂ ਸਾਈਟ ਗਾਰਡ ਜੋੜੋ ਜਾਂ ਫਾਰਮ ਮੁੜ ਖੋਲ੍ਹੋ।',
@@ -657,6 +674,7 @@ const pa = {
       tapSiteManage: 'ਸਾਈਟਾਂ ਟੈਬ ਵਿੱਚ ਪ੍ਰਬੰਧਨ ਲਈ ਸਾਈਟ ਉੱਤੇ ਟੈਪ ਕਰੋ',
       active: 'ਸਰਗਰਮ',
       guardCount: '{{count}} ਗਾਰਡ',
+      guardCountOf: '{{count}} / {{total}} ਗਾਰਡ',
       agencyAdmin: 'ਏਜੰਸੀ ਐਡਮਿਨ',
       accountDetails: 'ਖਾਤੇ ਦੇ ਵੇਰਵੇ',
       yourAccount: 'ਤੁਹਾਡਾ ਖਾਤਾ',

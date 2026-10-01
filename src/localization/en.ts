@@ -113,6 +113,10 @@ const en = {
       assignGuards: 'Assign guards',
       assignLimit: 'Select up to {{count}} available guards.',
       selectGuardFirst: 'Select at least one available guard.',
+      siteCapacity: '{{assigned}} of {{total}} guards assigned',
+      siteFull: 'Site is at full capacity',
+      assignedTo: 'Assigned · {{site}}',
+      alreadyOnSite: 'Already on this site',
       noAvailableGuards: 'No off-duty guards are currently available.',
       approve: 'Approve',
       reject: 'Reject',
@@ -131,6 +135,14 @@ const en = {
         completed: 'Completed',
       },
     },
+    assignmentErrors: {
+      GUARD_ALREADY_ASSIGNED:
+        'This guard already has an active assignment on another site. End that assignment before assigning them here.',
+      DUPLICATE_ASSIGNMENT: 'This guard is already assigned to this site.',
+      SITE_CAPACITY_REACHED: 'This site is already at its guard capacity.',
+      APPROVAL_REQUIRED: 'Approve this request before assigning guards.',
+      fallback: 'The assignment could not be completed. Please try again.',
+    },
     addGuardForm: {
       title: 'Add Guard',
       fullName: 'Full name',
@@ -146,6 +158,11 @@ const en = {
       other: 'Other',
       site: 'Initial site assignment',
       unassigned: 'Unassigned',
+      endAssignmentFirst: 'End current assignment first',
+      siteUsage: '{{assigned}}/{{total}}',
+      siteFull: 'Full',
+      assignedElsewhereHint:
+        'This guard has an active site assignment. Choose “Unassigned” and save first, then pick the new site.',
       loadingSites: 'Loading sites…',
       siteError:
         'Sites could not be loaded. You can add an unassigned guard or reopen the form to retry.',
@@ -664,6 +681,7 @@ const en = {
       tapSiteManage: 'Tap a site to manage it in the Sites tab',
       active: 'ACTIVE',
       guardCount: '{{count}} guards',
+      guardCountOf: '{{count}} / {{total}} guards',
       agencyAdmin: 'Agency Admin',
       accountDetails: 'Account details',
       yourAccount: 'YOUR ACCOUNT',

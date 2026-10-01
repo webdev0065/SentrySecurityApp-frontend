@@ -20,6 +20,7 @@ import {
   type AgencyGuard,
   type AgencySite,
 } from '../../../services/agencyApiService';
+import { assignmentErrorMessage } from '../../../utils/assignmentErrors';
 import { colors } from '../../../styles/colors';
 import { spacing } from '../../../styles/spacing';
 import { typography } from '../../../styles/typography';
@@ -49,6 +50,13 @@ const displayTime = (value: string) => {
   }`;
 };
 
+type PickerOption = {
+  id: string;
+  name: string;
+  note?: string;
+  disabled?: boolean;
+};
+
 export default function AddGuardModal({
   visible,
   onClose,
@@ -74,6 +82,7 @@ export default function AddGuardModal({
   const [gender, setGender] = useState('');
   const [siteId, setSiteId] = useState<number | null>(null);
   const [sites, setSites] = useState<AgencySite[]>([]);
+  const [guards, setGuards] = useState<AgencyGuard[]>([]);
   const [siteError, setSiteError] = useState(false);
   const [sitesLoading, setSitesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -141,6 +150,14 @@ export default function AddGuardModal({
       .finally(() => {
         if (active) setSitesLoading(false);
       });
+    // Occupancy data powers the capacity display in the site picker. A
+    // failure here only hides the counts - the backend still enforces limits.
+    agencyApiService
+      .getGuards()
+      .then(data => {
+        if (active) setGuards(data);
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -161,7 +178,7 @@ export default function AddGuardModal({
       !form.address.trim() ||
       !form.basicSalary ||
       !gender ||
-      !siteId
+      (!guard && !siteId)
     ) {
       setError(label('requiredError'));
       return;
@@ -234,7 +251,7 @@ export default function AddGuardModal({
         guard ? t('dashboard.guardUpdated') : label('success'),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : label('failure'));
+      setError(assignmentErrorMessage(err, t));
     } finally {
       submitting.current = false;
       setSaving(false);
@@ -326,9 +343,48 @@ export default function AddGuardModal({
       ))}
     </View>
   );
-  const options =
+  const occupancyBySite = new Map<number, number>();
+  for (const item of guards) {
+    if (item.site_id != null) {
+      occupancyBySite.set(
+        item.site_id,
+        (occupancyBySite.get(item.site_id) ?? 0) + 1,
+      );
+    }
+  }
+  // Site picker rules: an assigned guard can only leave through the explicit
+  // "Unassigned" option first (no silent moves), and full sites are disabled
+  // with their x/y usage shown. Capacity comes from the linked coverage
+  // request (guard_capacity); null means unlimited.
+  const siteOptions: PickerOption[] = [
+    ...(guard?.site_id
+      ? [{ id: '', name: t('addGuardForm.unassigned') }]
+      : []),
+    ...sites.map(site => {
+      const isCurrent = guard?.site_id === site.id;
+      const assignedElsewhere = guard?.site_id != null && !isCurrent;
+      const assigned = occupancyBySite.get(site.id) ?? 0;
+      const capacity = site.guard_capacity ?? null;
+      const full = capacity != null && assigned >= capacity && !isCurrent;
+      const usage =
+        capacity != null
+          ? t('addGuardForm.siteUsage', { assigned, total: capacity })
+          : undefined;
+      return {
+        id: String(site.id),
+        name: site.site_name,
+        note: assignedElsewhere
+          ? t('addGuardForm.endAssignmentFirst')
+          : full
+            ? `${usage} · ${t('addGuardForm.siteFull')}`
+            : usage,
+        disabled: assignedElsewhere || full,
+      };
+    }),
+  ];
+  const options: PickerOption[] =
     picker === 'site'
-      ? sites.map(site => ({ id: String(site.id), name: site.site_name }))
+      ? siteOptions
       : times.map(time => ({ id: time, name: displayTime(time) }));
   const visibleOptions = options.filter(option =>
     option.name.toLowerCase().includes(query.trim().toLowerCase()),
@@ -490,6 +546,11 @@ export default function AddGuardModal({
               {siteError ? (
                 <Text style={s.error}>{label('requiredError')}</Text>
               ) : null}
+              {guard?.site_id != null ? (
+                <Text style={s.hint}>
+                  {t('addGuardForm.assignedElsewhereHint')}
+                </Text>
+              ) : null}
               <Text style={s.label}>{label('coveragePlan')} *</Text>
               {choices<Plan>(
                 ['day_shift', 'night_watch', '24x7'],
@@ -630,7 +691,8 @@ export default function AddGuardModal({
               {visibleOptions.map(option => (
                 <ScalePressable
                   key={option.id}
-                  style={s.option}
+                  style={[s.option, option.disabled && s.optionDisabled]}
+                  disabled={option.disabled}
                   onPress={() => {
                     if (picker === 'site')
                       setSiteId(option.id ? Number(option.id) : null);
@@ -639,6 +701,9 @@ export default function AddGuardModal({
                   }}
                 >
                   <Text style={s.body}>{option.name}</Text>
+                  {option.note ? (
+                    <Text style={s.optionNote}>{option.note}</Text>
+                  ) : null}
                 </ScalePressable>
               ))}
               {!visibleOptions.length ? (
@@ -889,9 +954,19 @@ const s = StyleSheet.create({
   },
   options: { maxHeight: spacing.xxxl * 4 },
   option: {
-    height: spacing.xxxl,
-    justifyContent: 'center',
+    minHeight: spacing.xxxl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
     paddingHorizontal: spacing.sm,
+  },
+  optionDisabled: { opacity: 0.5 },
+  optionNote: {
+    color: colors.textGray,
+    fontSize: scaleFont(typography.sizes.xs),
+    flexShrink: 1,
+    textAlign: 'right',
   },
   calendar: {
     backgroundColor: colors.white,
